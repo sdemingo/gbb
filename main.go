@@ -27,15 +27,19 @@ var activeThread *Thread
 var boardPanel *BoardPanel
 var threadPanel *ThreadPanel
 var messageBuffer MessageBuffer
+var newMessage *Message
+var uiChannel chan int
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-	user, err := user.Current()
-	if err != nil {
-		panic(err)
+func editorRoutine(c chan int) {
+	err, content := InputMessageFromEditor()
+	if err == nil {
+		newMessage.Text = content
+		newMessage = nil
 	}
-	Username = user.Username
-	board = createMockBoard()
+	c <- 1
+}
+
+func UIRoutine(uic chan int) {
 
 	DefaultStyle = tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.Color236)
 	s, err := tcell.NewScreen()
@@ -46,18 +50,19 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 	s.SetStyle(DefaultStyle)
-	s.EnableMouse()
 	s.EnablePaste()
 	s.Clear()
 
+	activeMode = MODE_BOARD
+
 	boardPanel = CreateBoardPanel(s, board)
+	refreshPanels(s, true)
 
 	for {
 		refreshPanels(s, false)
 		s.Show()
-
-		// Process event
 		ev := s.PollEvent()
+
 		switch ev := ev.(type) {
 
 		case *tcell.EventResize:
@@ -96,16 +101,22 @@ func main() {
 					refreshPanels(s, true)
 				}
 				if activeMode == MODE_INPUT_TITLE {
-					// recogemos el título escrito
-					// y creamos el nuevo thread
+					// Recogemos el título y creamos un mensaje en
+					// blanco con ese titulo. En la siguiente iteración
+					// del bucle no recogeremos eventos de teclado
+					// hasta que nano haya terminado su trabajo
 					title := messageBuffer.Msg
-					content := "contenido del nuevo mensaje"
-					newm := NewMessage(Username, content)
-					thread := NewThread(title, newm)
+					content := ""
+					newMessage = NewMessage(Username, content)
+					thread := NewThread(title, newMessage)
 					board.addThread(thread)
-					activeMode = MODE_BOARD
-					refreshPanels(s, true) //?¿?¿?
-					s.HideCursor()
+
+					s.Fini() // destroy UI
+					c := make(chan int)
+					go editorRoutine(c)
+					<-c
+					uic <- 1 //restart UI
+					break
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
 				if activeMode == MODE_THREAD {
@@ -119,9 +130,7 @@ func main() {
 				messageBuffer.DelRuneFromBuffer()
 
 			} else {
-				/*
-					Pulso caracteres normales
-				*/
+				//Pulso caracteres normales
 				if activeMode == MODE_BOARD && ev.Rune() == 'a' {
 					activeMode = MODE_INPUT_TITLE
 					messageBuffer = NewMessageBuffer(s, 8)
@@ -130,5 +139,21 @@ func main() {
 				}
 			}
 		}
+	}
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+	user, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	Username = user.Username
+	board = createMockBoard()
+
+	uiChannel = make(chan int)
+	for {
+		go UIRoutine(uiChannel)
+		<-uiChannel
 	}
 }

@@ -16,6 +16,8 @@ import (
 
 */
 
+const TABSPACES = 4
+
 type Panel struct {
 	screen         tcell.Screen
 	x1, y1, x2, y2 int
@@ -65,7 +67,7 @@ func (p *Panel) Draw() {
 // Escribe un texto entre un punto(x1,y1) y otro (x2,y2). Si el texto no cabe en esa zona
 // lo corta y usa otra línea.
 // Retorna el número de línea por donde se quedó escribiendo o donde terminó el mensaje
-func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) int {
+/*func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) int {
 	row := y1
 	col := x1
 	for _, r := range []rune(text) {
@@ -77,6 +79,38 @@ func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string
 		}
 		if row > y2 {
 			break
+		}
+	}
+
+	return row
+}*/
+
+func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) int {
+	row := y1
+	col := x1
+	for _, r := range []rune(text) {
+		if r == '\n' {
+			row++
+			col = x1
+		} else if r == '\t' {
+			col += TABSPACES
+			if col >= x2 {
+				row++
+				col = x1
+			}
+			if row > y2 {
+				break
+			}
+		} else {
+			s.SetContent(col, row, r, nil, style)
+			col++
+			if col >= x2 {
+				row++
+				col = x1
+			}
+			if row > y2 {
+				break
+			}
 		}
 	}
 
@@ -427,7 +461,7 @@ func InputThreadPanel(scr tcell.Screen) {
 }
 
 // Creación en la UI para crear un nuevo mensaje
-func NewMessagePanel(scr tcell.Screen) (error, []byte) {
+func InputMessageFromEditor() (error, string) {
 	var body []byte
 
 	filename := "/tmp/" + randKey()
@@ -438,19 +472,18 @@ func NewMessagePanel(scr tcell.Screen) (error, []byte) {
 
 	err := cmd.Start()
 	if err != nil {
-		return err, body
+		return err, ""
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return err, body
+		return err, ""
 	}
 	body, err = ioutil.ReadFile(filename)
 	if err != nil {
-		return err, body
+		return err, ""
 	}
-	return nil, body
-	//s.Sync()
-	//refreshPanel(s, false)
+	content := fmt.Sprintf("%s", body)
+	return nil, content
 }
 
 /*
