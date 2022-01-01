@@ -67,32 +67,11 @@ func (p *Panel) Draw() {
 // Escribe un texto entre un punto(x1,y1) y otro (x2,y2). Si el texto no cabe en esa zona
 // lo corta y usa otra línea.
 // Retorna el número de línea por donde se quedó escribiendo o donde terminó el mensaje
-/*func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) int {
-	row := y1
-	col := x1
-	for _, r := range []rune(text) {
-		s.SetContent(col, row, r, nil, style)
-		col++
-		if col >= x2 {
-			row++
-			col = x1
-		}
-		if row > y2 {
-			break
-		}
-	}
-
-	return row
-}*/
-
 func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) int {
 	row := y1
 	col := x1
 	for _, r := range []rune(text) {
-		if r == '\n' {
-			row++
-			col = x1
-		} else if r == '\t' {
+		if r == '\t' {
 			col += TABSPACES
 			if col >= x2 {
 				row++

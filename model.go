@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,12 +33,24 @@ func (m *Message) SplitInLines(nchars int) []string {
 	lines = append(lines, fmt.Sprintf("De %s en %s", m.Author, m.DateString()))
 	for {
 		line := m.Text[from:to]
-		lines = append(lines, line)
+		if strings.Contains(line, "\n") {
+			sublines := strings.Split(line, "\n")
+			lines = append(lines, sublines...)
+		} else {
+			lines = append(lines, line)
+		}
 		from = to
 		to = from + nchars
 		if to >= len(m.Text) {
 			to = len(m.Text)
-			lines = append(lines, m.Text[from:to])
+			line = m.Text[from:to]
+			if strings.Contains(line, "\n") {
+				sublines := strings.Split(line, "\n")
+				lines = append(lines, sublines...)
+			} else {
+				lines = append(lines, line)
+			}
+			//lines = append(lines, m.Text[from:to])
 			break
 		}
 	}
