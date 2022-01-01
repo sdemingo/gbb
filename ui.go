@@ -142,8 +142,12 @@ func CreateBoardPanel(scr tcell.Screen, board *Board) *BoardPanel {
 
 func (bp *BoardPanel) Draw() {
 	bp.Panel.Draw()
-	drawText(bp.Panel.screen, 1, 0, 20, 1, DefaultStyle, APP_TITLE)
-	drawText(bp.Panel.screen, 25, 0, 40, 1, DefaultStyle, fmt.Sprintf("@%s", Username))
+	col := len(APP_TITLE) + 1
+	drawText(bp.Panel.screen, 1, 0, col, 1, DefaultStyle, APP_TITLE)
+	col += 10
+	drawText(bp.Panel.screen, col, 0, col+20, 1, DefaultStyle, fmt.Sprintf("%d hilos", len(bp.Board.Threads)))
+	col += 20
+	drawText(bp.Panel.screen, col, 0, col+20, 1, DefaultStyle, fmt.Sprintf("@%s", Username))
 
 	line := 2
 	for i := bp.FirstThreadShowed; i < len(bp.Board.Threads); i++ {
