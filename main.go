@@ -24,11 +24,9 @@ const (
 var board *Board
 var activeThread *Thread
 
-var boardPanel *BoardPanel
-var threadPanel *ThreadPanel
-var messageBuffer MessageBuffer
 var newMessage *Message
 var uiChannel chan int
+var confirmDelete bool
 
 func editorRoutine(c chan int) {
 	err, content := InputMessageFromEditor()
@@ -54,6 +52,7 @@ func UIRoutine(uic chan int) {
 	s.Clear()
 
 	activeMode = MODE_BOARD
+	confirmDelete = false
 
 	boardPanel = CreateBoardPanel(s, board)
 	refreshPanels(s, true)
@@ -62,14 +61,17 @@ func UIRoutine(uic chan int) {
 		refreshPanels(s, false)
 		s.Show()
 		ev := s.PollEvent()
-
 		switch ev := ev.(type) {
-
 		case *tcell.EventResize:
 			s.Sync()
 			refreshPanels(s, true)
 
 		case *tcell.EventKey:
+			resetWarningMessage()
+			if ev.Rune() != 'd' {
+				confirmDelete = false
+			}
+
 			if ev.Key() == tcell.KeyCtrlC {
 				quit(s)
 			}
@@ -101,10 +103,6 @@ func UIRoutine(uic chan int) {
 					refreshPanels(s, true)
 				}
 				if activeMode == MODE_INPUT_THREAD {
-					// Recogemos el título y creamos un mensaje en
-					// blanco con ese titulo. En la siguiente iteración
-					// del bucle no recogeremos eventos de teclado
-					// hasta que nano haya terminado su trabajo
 					title := messageBuffer.Msg
 					content := ""
 					newMessage = NewMessage(Username, content)
@@ -130,9 +128,34 @@ func UIRoutine(uic chan int) {
 				messageBuffer.DelRuneFromBuffer()
 
 			} else {
-				if activeMode == MODE_BOARD && ev.Rune() == 'a' {
+				/*
+					Delete reply or new thread
+				*/
+				if activeMode == MODE_BOARD && ev.Rune() == 'd' {
+					if !confirmDelete {
+						setWarningMessage("¿Desea borrar el hilo? Pulse 'd' para confirmar o ESC para cancelar")
+						confirmDelete = true
+					} else {
+						setWarningMessage("Borrado")
+						confirmDelete = false
+					}
+
+				} else if activeMode == MODE_THREAD && ev.Rune() == 'd' {
+					if !confirmDelete {
+						setWarningMessage("¿Desea borrar la respuesta? Pulse 'd' para confirmar o ESC para cancelar")
+						confirmDelete = true
+					} else {
+						setWarningMessage("Borrado")
+						confirmDelete = false
+					}
+
+					/*
+						New reply or new thread
+					*/
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'a' {
 					activeMode = MODE_INPUT_THREAD
 					messageBuffer = NewMessageBuffer(s, 8)
+
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'a' {
 
 					content := ""
@@ -147,6 +170,9 @@ func UIRoutine(uic chan int) {
 					uic <- 1 //restart UI
 					break
 
+					/*
+						Writting in top buffer
+					*/
 				} else if activeMode == MODE_INPUT_THREAD {
 					messageBuffer.AddRuneToBuffer(ev.Rune())
 				}

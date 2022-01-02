@@ -10,6 +10,11 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+var boardPanel *BoardPanel
+var threadPanel *ThreadPanel
+var messageBuffer MessageBuffer
+var warningMessage string
+
 /*
 
 	Panel representa un panel generico que se puede dibujar entre dos puntos (x1,y1) y (x2,y2)
@@ -420,6 +425,10 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 	} else if activeMode == MODE_INPUT_THREAD {
 		InputThreadPanel(scr)
 	}
+
+	if len(warningMessage) > 0 {
+		ShowWarningMessage(scr, warningMessage)
+	}
 }
 
 func randKey() string {
@@ -495,4 +504,25 @@ func (mb *MessageBuffer) DelRuneFromBuffer() {
 			mb.Cursor--
 		}
 	}
+}
+
+/*
+	Mensajes de aviso en la barra superior
+*/
+
+func ShowWarningMessage(scr tcell.Screen, text string) {
+	warningStyle := tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.ColorRed)
+	w, _ := scr.Size()
+	for c := 1; c < w-1; c++ {
+		drawText(scr, c, 0, w, 0, warningStyle, " ")
+	}
+	drawText(scr, 1, 0, w, 0, warningStyle, text)
+}
+
+func setWarningMessage(text string) {
+	warningMessage = text
+}
+
+func resetWarningMessage() {
+	warningMessage = ""
 }
