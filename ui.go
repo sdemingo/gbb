@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 
@@ -258,12 +257,14 @@ func (tp *ThreadPanel) Draw() {
 		}
 		if (tp.MaxLine - line) > len(mp.Lines) {
 			// El mensaje cabe completamente
-			mp.DrawAll(line, (indexMp == tp.MessageSelected))
-			line += len(mp.Lines)
+			line += mp.DrawAll(line, tp.MaxLine, (indexMp == tp.MessageSelected))
+			for c := 2; c < tp.MaxCol-2; c++ {
+				tp.Panel.screen.SetContent(c, line, tcell.RuneHLine, nil, DefaultStyle)
+			}
+			line++
 		} else {
 			// El mensaje no cabe completamente. Cargo la página seleccionada
-			mp.Draw(line, mp.ActivePage, (indexMp == tp.MessageSelected))
-			line += mp.Pages[mp.ActivePage].Len()
+			line += mp.Draw(line, tp.MaxLine, mp.ActivePage, (indexMp == tp.MessageSelected))
 			break
 		}
 	}
@@ -368,23 +369,36 @@ func CreateMessagePanel(scr tcell.Screen, msg *Message, parent *ThreadPanel) *Me
 // Este método permite dibujar un mensaje en pantalla. Comenzará a escribir en la línes startLine y
 // solo mostrará la pagina marcada por npage. isSelected indicará si el mensaje es el seleccionado
 // y en ese caso se resaltará su cabecera: la 1º línea de su 1º página
-func (mp *MessagePanel) Draw(startLine int, npage int, isSelected bool) {
+// Se dibujan como mucho líneas hasta endLine
+// Se retornan las líneas que se han podido dibujar
+func (mp *MessagePanel) Draw(startLine int, endLine int, npage int, isSelected bool) int {
 	page := mp.Pages[npage]
 	nline := startLine
 	for i, line := range mp.Lines[page.from:page.to] {
+		if nline >= endLine {
+			return nline
+		}
 		if i == 0 && npage == 0 && isSelected {
 			drawText(mp.Panel.screen, 1, nline, mp.Parent.MaxCol, nline, DefaultStyle.Reverse(true), line)
+		} else if i == 0 && npage == 0 {
+			drawText(mp.Panel.screen, 1, nline, mp.Parent.MaxCol, nline, DefaultStyle.Bold(true), line)
 		} else {
 			drawText(mp.Panel.screen, 1, nline, mp.Parent.MaxCol, nline, DefaultStyle, line)
 		}
 		nline++
 	}
+	return nline
 }
 
-// Este método permite dibujar un mensaje completo en pantalla ignorando su paginación
-func (mp *MessagePanel) DrawAll(startLine int, isSelected bool) {
+// Este método permite dibujar un mensaje completo en pantalla ignorando su paginación.
+// Se dibujan como mucho líneas hasta endLine
+// Se retornan las líneas que se han podido dibujar
+func (mp *MessagePanel) DrawAll(startLine int, endLine int, isSelected bool) int {
 	nline := startLine
 	for i, line := range mp.Lines {
+		if nline >= (endLine - 1) {
+			return nline
+		}
 		if i == 0 && isSelected {
 			drawText(mp.Panel.screen, 1, nline, mp.Parent.MaxCol, nline, DefaultStyle.Reverse(true), line)
 		} else {
@@ -392,6 +406,7 @@ func (mp *MessagePanel) DrawAll(startLine int, isSelected bool) {
 		}
 		nline++
 	}
+	return nline
 }
 
 func (mp *MessagePanel) UpPage() {
@@ -431,12 +446,6 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 	}
 }
 
-func randKey() string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return fmt.Sprintf("%x", b)
-}
-
 // Creación de la UI para crear un nuevo hilo
 func InputThreadPanel(scr tcell.Screen) {
 	w, _ := scr.Size()
@@ -453,7 +462,7 @@ func InputThreadPanel(scr tcell.Screen) {
 func InputMessageFromEditor() (error, string) {
 	var body []byte
 
-	filename := "/tmp/" + randKey()
+	filename := "/tmp/" + RandomString()
 	cmd := exec.Command("nano", filename)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

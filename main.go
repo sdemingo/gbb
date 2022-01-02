@@ -138,6 +138,9 @@ func UIRoutine(uic chan int) {
 					} else {
 						setWarningMessage("Borrado")
 						confirmDelete = false
+						/*
+							Falta borrarlo de Board y recargar
+						*/
 					}
 
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'd' {
@@ -147,6 +150,9 @@ func UIRoutine(uic chan int) {
 					} else {
 						setWarningMessage("Borrado")
 						confirmDelete = false
+						/*
+							Falta borrarlo the thread y recargar
+						*/
 					}
 
 					/*

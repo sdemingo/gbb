@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"sort"
 	"strings"
@@ -97,6 +98,12 @@ var MIN_BOARD_NUM_THREADS = 80
 
 var MAX_MESSAGES_PER_THREAD = 5
 var MIN_MESSAGES_PER_THREAD = 0
+
+func RandomString() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
+}
 
 func RandomText(min, max int) string {
 	text := ""

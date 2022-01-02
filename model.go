@@ -31,6 +31,7 @@ func (m *Message) SplitInLines(nchars int) []string {
 		to = len(m.Text)
 	}
 	lines = append(lines, fmt.Sprintf("De %s en %s", m.Author, m.DateString()))
+	lines = append(lines, " ")
 	for {
 		line := m.Text[from:to]
 		if strings.Contains(line, "\n") {
@@ -50,7 +51,6 @@ func (m *Message) SplitInLines(nchars int) []string {
 			} else {
 				lines = append(lines, line)
 			}
-			//lines = append(lines, m.Text[from:to])
 			break
 		}
 	}
