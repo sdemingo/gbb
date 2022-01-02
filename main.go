@@ -16,9 +16,9 @@ var Username string
 var activeMode = 0
 
 const (
-	MODE_INPUT_TITLE = 2
-	MODE_THREAD      = 1
-	MODE_BOARD       = 0
+	MODE_INPUT_THREAD = 2
+	MODE_THREAD       = 1
+	MODE_BOARD        = 0
 )
 
 var board *Board
@@ -100,7 +100,7 @@ func UIRoutine(uic chan int) {
 					activeMode = MODE_THREAD
 					refreshPanels(s, true)
 				}
-				if activeMode == MODE_INPUT_TITLE {
+				if activeMode == MODE_INPUT_THREAD {
 					// Recogemos el título y creamos un mensaje en
 					// blanco con ese titulo. En la siguiente iteración
 					// del bucle no recogeremos eventos de teclado
@@ -130,11 +130,24 @@ func UIRoutine(uic chan int) {
 				messageBuffer.DelRuneFromBuffer()
 
 			} else {
-				//Pulso caracteres normales
 				if activeMode == MODE_BOARD && ev.Rune() == 'a' {
-					activeMode = MODE_INPUT_TITLE
+					activeMode = MODE_INPUT_THREAD
 					messageBuffer = NewMessageBuffer(s, 8)
-				} else if activeMode == MODE_INPUT_TITLE {
+				} else if activeMode == MODE_THREAD && ev.Rune() == 'a' {
+
+					content := ""
+					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
+					newMessage = NewMessage(Username, content)
+					thread.addMessage(newMessage)
+
+					s.Fini() // destroy UI
+					c := make(chan int)
+					go editorRoutine(c)
+					<-c
+					uic <- 1 //restart UI
+					break
+
+				} else if activeMode == MODE_INPUT_THREAD {
 					messageBuffer.AddRuneToBuffer(ev.Rune())
 				}
 			}

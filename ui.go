@@ -417,10 +417,7 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 			threadPanel = CreateThreadPanel(scr, activeThread)
 		}
 		threadPanel.Draw()
-	} else if activeMode == MODE_INPUT_TITLE {
-		/*if resize {
-			threadPanel = CreateThreadPanel(scr, activeThread)
-		}*/
+	} else if activeMode == MODE_INPUT_THREAD {
 		InputThreadPanel(scr)
 	}
 }
