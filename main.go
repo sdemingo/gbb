@@ -9,8 +9,29 @@ import (
 	"github.com/gdamore/tcell"
 )
 
+const HELP_TEXT = `
+
+
+	Índice de teclas y comandos
+	===========================
+
+	a      -    Añade un hilo o un mensaje
+
+	d      -    Borrar un hilo o un mensaje
+
+	↑↓     -    Navegar entre hilos o mensajes
+
+	AvPg   - 	Avanzar página de un mensaje
+
+	RePg   -    Retroceder página de un mensaje
+
+	ESC    -    Ir a la ventana anterior
+
+	?      -    Mostrar este mensaje de ayuda
+`
+
 var DATE_FORMAT = "02 Jan-06"
-var APP_TITLE = "GBB Bulletin v0.1"
+var APP_TITLE = "GBB v1.0"
 var DefaultStyle tcell.Style
 var Username string
 var activeMode = 0
@@ -72,10 +93,6 @@ func UIRoutine(uic chan int) {
 			resetWarningMessage()
 			if ev.Rune() != 'd' {
 				confirmDelete = false
-			}
-
-			if ev.Key() == tcell.KeyCtrlC {
-				quit(s)
 			}
 			if ev.Key() == tcell.KeyESC {
 				if activeMode == MODE_BOARD {

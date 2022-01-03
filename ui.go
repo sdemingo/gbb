@@ -15,23 +15,6 @@ var messageBuffer MessageBuffer
 var warningMessage string
 var helpMessage string
 
-const HELP_TEXT = `
-
-
-	Índice de teclas y comandos
-	===========================
-
-	a      -    Añade un hilo o un mensaje
-
-	d      -    Borrar un hilo o un mensaje
-
-	↑↓     -    Navegar entre hilos o mensajes
-	
-	ESC    -    Ir a la ventana anterior
-
-
-`
-
 /*
 
 	Panel representa un panel generico que se puede dibujar entre dos puntos (x1,y1) y (x2,y2)
