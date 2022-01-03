@@ -71,7 +71,7 @@ func UIRoutine(uic chan int) {
 		log.Fatalf("%+v", err)
 	}
 	s.SetStyle(DefaultStyle)
-	s.EnablePaste()
+	//s.EnablePaste()
 	s.Clear()
 
 	activeMode = MODE_BOARD
