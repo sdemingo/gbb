@@ -13,6 +13,24 @@ var boardPanel *BoardPanel
 var threadPanel *ThreadPanel
 var messageBuffer MessageBuffer
 var warningMessage string
+var helpMessage string
+
+const HELP_TEXT = `
+
+
+	Índice de teclas y comandos
+	===========================
+
+	a      -    Añade un hilo o un mensaje
+
+	d      -    Borrar un hilo o un mensaje
+
+	↑↓     -    Navegar entre hilos o mensajes
+	
+	ESC    -    Ir a la ventana anterior
+
+
+`
 
 /*
 
@@ -103,6 +121,20 @@ func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string
 func quit(s tcell.Screen) {
 	s.Fini()
 	os.Exit(0)
+}
+
+func HelpPanel(s tcell.Screen) {
+	w, h := s.Size()
+	helpPanel := NewPanel(s, 0, 1, w, h-1)
+	helpPanel.Draw()
+
+	lines := SplitStringInLines(HELP_TEXT, w)
+	nline := 2
+	for i := range lines {
+		drawText(s, 2, nline, w-1, nline, DefaultStyle, lines[i])
+		nline++
+	}
+
 }
 
 /*
@@ -439,11 +471,14 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 		threadPanel.Draw()
 	} else if activeMode == MODE_INPUT_THREAD {
 		InputThreadPanel(scr)
+	} else if activeMode == MODE_HELP {
+		HelpPanel(scr)
 	}
 
 	if len(warningMessage) > 0 {
 		ShowWarningMessage(scr, warningMessage)
 	}
+
 }
 
 // Creación de la UI para crear un nuevo hilo

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -23,17 +22,40 @@ func (m *Message) ResumeText() string {
 	return m.Text
 }
 
-func (m *Message) SplitInLines(nchars int) []string {
+func SplitStringInLines(text string, nchars int) []string {
+	lines := make([]string, 0)
+
+	count := 0
+	line := ""
+	for i := 0; i < len(text); i++ {
+		if text[i] == '\n' {
+			lines = append(lines, line)
+			count = 0
+			line = ""
+			continue
+		} else {
+			line += text[i : i+1]
+			count++
+			if count == nchars {
+				lines = append(lines, line)
+				line = ""
+				count = 0
+			}
+		}
+	}
+	return lines
+}
+
+/*
+func SplitStringInLines(text string, nchars int) []string {
 	lines := make([]string, 0)
 	from := 0
 	to := from + nchars
-	if to >= len(m.Text) {
-		to = len(m.Text)
+	if to >= len(text) {
+		to = len(text)
 	}
-	lines = append(lines, fmt.Sprintf("De %s en %s", m.Author, m.DateString()))
-	lines = append(lines, " ")
 	for {
-		line := m.Text[from:to]
+		line := text[from:to]
 		if strings.Contains(line, "\n") {
 			sublines := strings.Split(line, "\n")
 			lines = append(lines, sublines...)
@@ -42,9 +64,9 @@ func (m *Message) SplitInLines(nchars int) []string {
 		}
 		from = to
 		to = from + nchars
-		if to >= len(m.Text) {
-			to = len(m.Text)
-			line = m.Text[from:to]
+		if to >= len(text) {
+			to = len(text)
+			line = text[from:to]
 			if strings.Contains(line, "\n") {
 				sublines := strings.Split(line, "\n")
 				lines = append(lines, sublines...)
@@ -54,9 +76,21 @@ func (m *Message) SplitInLines(nchars int) []string {
 			break
 		}
 	}
-	lines = append(lines, " ")
 
 	return lines
+}*/
+
+func (m *Message) SplitInLines(nchars int) []string {
+
+	msg := make([]string, 0)
+	msg = append(msg, fmt.Sprintf("De %s en %s", m.Author, m.DateString()))
+	msg = append(msg, " ")
+
+	body := SplitStringInLines(m.Text, nchars)
+	msg = append(msg, body...)
+
+	msg = append(msg, " ")
+	return msg
 }
 
 func (m *Message) DateString() string {

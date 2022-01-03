@@ -14,8 +14,10 @@ var APP_TITLE = "GBB Bulletin v0.1"
 var DefaultStyle tcell.Style
 var Username string
 var activeMode = 0
+var lastActiveMode = 0
 
 const (
+	MODE_HELP         = 3
 	MODE_INPUT_THREAD = 2
 	MODE_THREAD       = 1
 	MODE_BOARD        = 0
@@ -80,6 +82,8 @@ func UIRoutine(uic chan int) {
 					quit(s)
 				} else if activeMode == MODE_THREAD {
 					activeMode = MODE_BOARD
+				} else if activeMode == MODE_HELP {
+					activeMode = lastActiveMode
 				}
 
 			} else if ev.Key() == tcell.KeyDown {
@@ -184,6 +188,12 @@ func UIRoutine(uic chan int) {
 					uic <- 1 //restart UI
 					break
 
+					/*
+						Show help window
+					*/
+				} else if ev.Rune() == '?' {
+					lastActiveMode = activeMode
+					activeMode = MODE_HELP
 					/*
 						Writting in top buffer
 					*/
