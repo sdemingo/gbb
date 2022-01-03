@@ -462,7 +462,7 @@ func InputThreadPanel(scr tcell.Screen) {
 func InputMessageFromEditor() (error, string) {
 	var body []byte
 
-	filename := "/tmp/" + RandomString()
+	filename := "/tmp/" + RandomString(8)
 	cmd := exec.Command("nano", filename)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

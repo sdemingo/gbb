@@ -82,12 +82,13 @@ var words = []string{
 }
 
 var names = []string{"sergio",
-	"luiskan",
+	"sdemingo",
+	/*"luiskan",
 	"fterror",
 	"arkainoso",
 	"fefeiro",
 	"apolut",
-	"karo",
+	"karo",*/
 	"migualer"}
 
 var MIN_WORDS_PER_MESSAGE = 100
@@ -99,8 +100,8 @@ var MIN_BOARD_NUM_THREADS = 80
 var MAX_MESSAGES_PER_THREAD = 5
 var MIN_MESSAGES_PER_THREAD = 0
 
-func RandomString() string {
-	b := make([]byte, 8)
+func RandomString(len int) string {
+	b := make([]byte, len)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
 }

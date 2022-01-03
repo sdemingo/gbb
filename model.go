@@ -70,6 +70,7 @@ func (m *Message) String() string {
 type Thread struct {
 	Messages []*Message
 	Title    string
+	Id       string
 }
 
 func NewThread(title string, first *Message) *Thread {
@@ -80,6 +81,7 @@ func NewThread(title string, first *Message) *Thread {
 	t.Messages = make([]*Message, 0)
 	t.Messages = append(t.Messages, first)
 	t.Title = title
+	t.Id = RandomString(32)
 	return t
 }
 
@@ -89,8 +91,30 @@ func (t *Thread) addMessage(m *Message) {
 	}
 }
 
+func (t *Thread) delMessage(m *Message) {
+	i := 0
+	if m != nil {
+		for i = range t.Messages {
+			m2 := t.Messages[i]
+			if (m.Author == m2.Author) && (m.Stamp == m2.Stamp) && (i > 0) {
+				// El primer mensaje del hilo no se puede borrar, solo las respuestas
+				break
+			}
+		}
+		if i < len(t.Messages)-1 {
+			t.Messages = append(t.Messages[:i], t.Messages[i+1:]...)
+		} else {
+			t.Messages = t.Messages[:len(t.Messages)-1]
+		}
+	}
+}
+
 func (t *Thread) Stamp() time.Time {
 	return t.Messages[0].Stamp
+}
+
+func (t *Thread) Author() string {
+	return t.Messages[0].Author
 }
 
 func (t *Thread) String() string {
@@ -119,6 +143,22 @@ func (b *Board) Less(i, j int) bool { return b.Threads[i].Stamp().After(b.Thread
 func (b *Board) addThread(th *Thread) {
 	if th != nil {
 		b.Threads = append([]*Thread{th}, b.Threads...)
+	}
+}
+
+func (b *Board) delThread(th *Thread) {
+	d := 0
+	if th != nil {
+		for d = range b.Threads {
+			if b.Threads[d].Id == th.Id {
+				break
+			}
+		}
+		if d >= 0 && d < len(b.Threads)-1 {
+			b.Threads = append(b.Threads[:d], b.Threads[d+1:]...)
+		} else {
+			b.Threads = b.Threads[:len(b.Threads)-1]
+		}
 	}
 }
 

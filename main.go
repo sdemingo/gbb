@@ -136,11 +136,14 @@ func UIRoutine(uic chan int) {
 						setWarningMessage("¿Desea borrar el hilo? Pulse 'd' para confirmar o ESC para cancelar")
 						confirmDelete = true
 					} else {
-						setWarningMessage("Borrado")
-						confirmDelete = false
-						/*
-							Falta borrarlo de Board y recargar
-						*/
+						deleteTh := board.Threads[boardPanel.GetThreadSelectedIndex()]
+						if deleteTh.Author() == Username {
+							setWarningMessage("Borrado")
+							confirmDelete = false
+							board.delThread(deleteTh)
+						} else {
+							setWarningMessage("Solo el autor del hilo puede borrarlo")
+						}
 					}
 
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'd' {
@@ -148,11 +151,16 @@ func UIRoutine(uic chan int) {
 						setWarningMessage("¿Desea borrar la respuesta? Pulse 'd' para confirmar o ESC para cancelar")
 						confirmDelete = true
 					} else {
-						setWarningMessage("Borrado")
-						confirmDelete = false
-						/*
-							Falta borrarlo the thread y recargar
-						*/
+						thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
+						deleteMsg := thread.Messages[threadPanel.MessageSelected]
+						if deleteMsg.Author == Username {
+							setWarningMessage("Borrado")
+							confirmDelete = false
+							thread.delMessage(deleteMsg)
+							activeMode = MODE_BOARD
+						} else {
+							setWarningMessage("Solo el autor del mensaje puede borrarlo")
+						}
 					}
 
 					/*
