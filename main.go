@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"math/rand"
+	"os"
 	"os/user"
 	"sort"
 	"time"
@@ -20,6 +21,8 @@ const HELP_TEXT = `
 
 	d      -    Borrar un hilo o un mensaje
 
+	e      -    Editar un mensaje
+
 	↑↓     -    Navegar entre hilos o mensajes
 
 	AvPg   - 	Avanzar página de un mensaje
@@ -29,12 +32,17 @@ const HELP_TEXT = `
 	ESC    -    Ir a la ventana anterior
 
 	?      -    Mostrar este mensaje de ayuda
+
+	f      -    Fijar un hilo en la cabecera. Solo para administradores
+
+	c      -    Cerrar un hilo para nuevas respuestas. Solo para administradores
 `
 
 var DATE_FORMAT = "02 Jan-06"
 var APP_TITLE = "GBB v1.0"
 var DefaultStyle tcell.Style
 var Username string
+var isAdmin bool
 var activeMode = 0
 var lastActiveMode = 0
 var uiChannel chan int
@@ -234,12 +242,15 @@ func UIRoutine(uic chan int) {
 }
 
 func main() {
+
 	rand.Seed(time.Now().UnixNano())
 	user, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
 	Username = user.Username
+	isAdmin = (os.Getuid() == 0)
+
 	board = createMockBoard()
 
 	uiChannel = make(chan int)
