@@ -148,15 +148,26 @@ type BoardPanel struct {
 
 func CreateBoardPanel(scr tcell.Screen, board *Board) *BoardPanel {
 	bp := new(BoardPanel)
-	w, h := scr.Size()
 	bp.Board = board
+	/*w, h := scr.Size()
+	bp.Panel = NewPanel(scr, 0, 1, w, h-1)
+	bp.FirstThreadShowed = 0
+	bp.MaxLine = h - 1
+	bp.MinLine = 2
+	bp.MaxCol = w - 2
+	bp.CursorLine = bp.MinLine*/
+	bp.Init(scr)
+	return bp
+}
+
+func (bp *BoardPanel) Init(scr tcell.Screen) {
+	w, h := scr.Size()
 	bp.Panel = NewPanel(scr, 0, 1, w, h-1)
 	bp.FirstThreadShowed = 0
 	bp.MaxLine = h - 1
 	bp.MinLine = 2
 	bp.MaxCol = w - 2
 	bp.CursorLine = bp.MinLine
-	return bp
 }
 
 func (bp *BoardPanel) Draw() {

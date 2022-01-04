@@ -46,40 +46,6 @@ func SplitStringInLines(text string, nchars int) []string {
 	return lines
 }
 
-/*
-func SplitStringInLines(text string, nchars int) []string {
-	lines := make([]string, 0)
-	from := 0
-	to := from + nchars
-	if to >= len(text) {
-		to = len(text)
-	}
-	for {
-		line := text[from:to]
-		if strings.Contains(line, "\n") {
-			sublines := strings.Split(line, "\n")
-			lines = append(lines, sublines...)
-		} else {
-			lines = append(lines, line)
-		}
-		from = to
-		to = from + nchars
-		if to >= len(text) {
-			to = len(text)
-			line = text[from:to]
-			if strings.Contains(line, "\n") {
-				sublines := strings.Split(line, "\n")
-				lines = append(lines, sublines...)
-			} else {
-				lines = append(lines, line)
-			}
-			break
-		}
-	}
-
-	return lines
-}*/
-
 func (m *Message) SplitInLines(nchars int) []string {
 
 	msg := make([]string, 0)
@@ -143,8 +109,16 @@ func (t *Thread) delMessage(m *Message) {
 	}
 }
 
-func (t *Thread) Stamp() time.Time {
+func (t *Thread) CreateStamp() time.Time {
 	return t.Messages[0].Stamp
+}
+
+func (t *Thread) UpdateStamp() time.Time {
+	if len(t.Messages) > 1 {
+		return t.Messages[len(t.Messages)-1].Stamp
+	} else {
+		return t.Messages[0].Stamp
+	}
 }
 
 func (t *Thread) Author() string {
@@ -153,9 +127,9 @@ func (t *Thread) Author() string {
 
 func (t *Thread) String() string {
 	if len(t.Messages) > 1 {
-		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.Stamp().Format(DATE_FORMAT), t.Messages[0].Author, len(t.Messages)-1, t.Title)
+		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Messages[0].Author, len(t.Messages)-1, t.Title)
 	} else {
-		return fmt.Sprintf(" %s|%-10s    %s ", t.Stamp().Format(DATE_FORMAT), t.Messages[0].Author, t.Title)
+		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Messages[0].Author, t.Title)
 	}
 
 }
@@ -170,9 +144,11 @@ func CreateBoard() *Board {
 	return b
 }
 
-func (b *Board) Len() int           { return len(b.Threads) }
-func (b *Board) Swap(i, j int)      { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
-func (b *Board) Less(i, j int) bool { return b.Threads[i].Stamp().After(b.Threads[j].Stamp()) }
+func (b *Board) Len() int      { return len(b.Threads) }
+func (b *Board) Swap(i, j int) { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
+func (b *Board) Less(i, j int) bool {
+	return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
+}
 
 func (b *Board) addThread(th *Thread) {
 	if th != nil {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"os/user"
+	"sort"
 	"time"
 
 	"github.com/gdamore/tcell"
@@ -61,8 +62,10 @@ func editorRoutine(c chan int) {
 }
 
 func UIRoutine(uic chan int) {
+	exit := false
 
 	DefaultStyle = tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.Color236)
+
 	s, err := tcell.NewScreen()
 	if err != nil {
 		log.Fatalf("%+v", err)
@@ -71,16 +74,17 @@ func UIRoutine(uic chan int) {
 		log.Fatalf("%+v", err)
 	}
 	s.SetStyle(DefaultStyle)
-	//s.EnablePaste()
 	s.Clear()
 
 	activeMode = MODE_BOARD
 	confirmDelete = false
 
+	sort.Sort(board)
+
 	boardPanel = CreateBoardPanel(s, board)
 	refreshPanels(s, true)
 
-	for {
+	for !exit {
 		refreshPanels(s, false)
 		s.Show()
 		ev := s.PollEvent()
@@ -122,20 +126,14 @@ func UIRoutine(uic chan int) {
 					activeThread = board.Threads[boardPanel.GetThreadSelectedIndex()]
 					activeMode = MODE_THREAD
 					refreshPanels(s, true)
-				}
-				if activeMode == MODE_INPUT_THREAD {
+
+				} else if activeMode == MODE_INPUT_THREAD {
 					title := messageBuffer.Msg
 					content := ""
 					newMessage = NewMessage(Username, content)
 					thread := NewThread(title, newMessage)
 					board.addThread(thread)
-
-					s.Fini() // destroy UI
-					c := make(chan int)
-					go editorRoutine(c)
-					<-c
-					uic <- 1 //restart UI
-					break
+					exit = true // exit to run the editor
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
 				if activeMode == MODE_THREAD {
@@ -197,13 +195,7 @@ func UIRoutine(uic chan int) {
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
 					newMessage = NewMessage(Username, content)
 					thread.addMessage(newMessage)
-
-					s.Fini() // destroy UI
-					c := make(chan int)
-					go editorRoutine(c)
-					<-c
-					uic <- 1 //restart UI
-					break
+					exit = true // exit to run the editor
 
 					/*
 						Show help window
@@ -211,6 +203,7 @@ func UIRoutine(uic chan int) {
 				} else if ev.Rune() == '?' {
 					lastActiveMode = activeMode
 					activeMode = MODE_HELP
+
 					/*
 						Writting in top buffer
 					*/
@@ -220,6 +213,9 @@ func UIRoutine(uic chan int) {
 			}
 		}
 	}
+
+	s.Fini()
+	uic <- 1
 }
 
 func main() {
@@ -234,6 +230,8 @@ func main() {
 	uiChannel = make(chan int)
 	for {
 		go UIRoutine(uiChannel)
+		<-uiChannel
+		go editorRoutine(uiChannel)
 		<-uiChannel
 	}
 }
