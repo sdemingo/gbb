@@ -190,11 +190,10 @@ func (bp *BoardPanel) Draw() {
 		}
 		if bp.Board.Threads[i] != nil {
 			text := fmt.Sprintf("%s", bp.Board.Threads[i])
-			if line == bp.CursorLine {
-				drawText(bp.Panel.screen, 1, line, bp.MaxCol, line, DefaultStyle.Reverse(true), text)
-			} else {
-				drawText(bp.Panel.screen, 1, line, bp.MaxCol, line, DefaultStyle, text)
-			}
+			isSelected := line == bp.CursorLine
+			isFixed := bp.Board.Threads[i].isFixed
+
+			drawText(bp.Panel.screen, 1, line, bp.MaxCol, line, DefaultStyle.Reverse(isSelected).Bold(isFixed), text)
 			line++
 		}
 	}

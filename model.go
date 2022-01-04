@@ -71,6 +71,8 @@ type Thread struct {
 	Messages []*Message
 	Title    string
 	Id       string
+	isClosed bool
+	isFixed  bool
 }
 
 func NewThread(title string, first *Message) *Thread {
@@ -82,6 +84,8 @@ func NewThread(title string, first *Message) *Thread {
 	t.Messages = append(t.Messages, first)
 	t.Title = title
 	t.Id = RandomString(32)
+	t.isClosed = false
+	t.isFixed = false
 	return t
 }
 
@@ -146,8 +150,21 @@ func CreateBoard() *Board {
 
 func (b *Board) Len() int      { return len(b.Threads) }
 func (b *Board) Swap(i, j int) { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
-func (b *Board) Less(i, j int) bool {
+
+/*func (b *Board) Less(i, j int) bool {
 	return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
+}*/
+func (b *Board) Less(i, j int) bool {
+	if b.Threads[i].isFixed == b.Threads[j].isFixed {
+		return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
+	} else {
+		if b.Threads[i].isFixed {
+			return true
+		} else {
+			return false
+		}
+	}
+
 }
 
 func (b *Board) addThread(th *Thread) {

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell"
@@ -200,24 +201,31 @@ func UIRoutine(uic chan int) {
 					messageBuffer = NewMessageBuffer(s, 8)
 
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'a' {
-
-					content := ""
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					newMessage = NewMessage(Username, content)
-					thread.addMessage(newMessage)
-					exit = true // exit to run the editor
+					if thread.isClosed {
+						setWarningMessage("El hilo está cerrado y no admite cambios")
+					} else {
+						content := ""
+						newMessage = NewMessage(Username, content)
+						thread.addMessage(newMessage)
+						exit = true // exit to run the editor
+					}
 
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'e' {
 					/*
 						Edit message
 					*/
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					newMessage = thread.Messages[threadPanel.MessageSelected]
-					if newMessage.Author == Username {
-						newMessageInitialText = newMessage.Text
-						exit = true // exit to run the editor
+					if thread.isClosed {
+						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
-						setWarningMessage("Solo el autor del mensaje puede editarlo")
+						newMessage = thread.Messages[threadPanel.MessageSelected]
+						if newMessage.Author == Username {
+							newMessageInitialText = newMessage.Text
+							exit = true // exit to run the editor
+						} else {
+							setWarningMessage("Solo el autor del mensaje puede editarlo")
+						}
 					}
 
 					/*
@@ -226,6 +234,28 @@ func UIRoutine(uic chan int) {
 				} else if activeMode != MODE_INPUT_THREAD && ev.Rune() == '?' {
 					lastActiveMode = activeMode
 					activeMode = MODE_HELP
+
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'f' && isAdmin {
+					/*
+						Fix a thread
+					*/
+					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
+					thread.isFixed = !thread.isFixed
+					sort.Sort(board)
+
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' && isAdmin {
+					/*
+						Close thread
+					*/
+					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
+					if !thread.isClosed {
+						thread.isClosed = true
+						thread.Title = "[Cerrado]" + thread.Title
+					} else {
+						thread.isClosed = false
+						thread.Title = strings.TrimPrefix(thread.Title, "[Cerrado]")
+					}
+					// ¡¡¡¡¡¡¡¡¡¡¡¡¡¡ UPDATE DATABASE !!!!!!!!!!!!!!!!!!!
 
 					/*
 						Writting in top buffer
