@@ -488,16 +488,28 @@ func InputThreadPanel(scr tcell.Screen) {
 }
 
 // Creación en la UI para crear un nuevo mensaje
-func InputMessageFromEditor() (error, string) {
+func InputMessageFromEditor(initialText string) (error, string) {
 	var body []byte
 
 	filename := "/tmp/" + RandomString(8)
+
+	// Write in the file the inital text
+	f, err := os.Create(filename)
+	if err != nil {
+		return err, ""
+	}
+	_, err = f.WriteString(initialText)
+	if err != nil {
+		f.Close()
+		return err, ""
+	}
+
 	cmd := exec.Command("nano", filename)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		return err, ""
 	}

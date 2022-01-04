@@ -37,6 +37,8 @@ var DefaultStyle tcell.Style
 var Username string
 var activeMode = 0
 var lastActiveMode = 0
+var uiChannel chan int
+var confirmDelete bool
 
 const (
 	MODE_HELP         = 3
@@ -49,11 +51,11 @@ var board *Board
 var activeThread *Thread
 
 var newMessage *Message
-var uiChannel chan int
-var confirmDelete bool
+var newMessageInitialText string = ""
 
 func editorRoutine(c chan int) {
-	err, content := InputMessageFromEditor()
+	err, content := InputMessageFromEditor(newMessageInitialText)
+	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
 		newMessage = nil
@@ -197,10 +199,23 @@ func UIRoutine(uic chan int) {
 					thread.addMessage(newMessage)
 					exit = true // exit to run the editor
 
+				} else if activeMode == MODE_THREAD && ev.Rune() == 'e' {
+					/*
+						Edit message
+					*/
+					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
+					newMessage = thread.Messages[threadPanel.MessageSelected]
+					if newMessage.Author == Username {
+						newMessageInitialText = newMessage.Text
+						exit = true // exit to run the editor
+					} else {
+						setWarningMessage("Solo el autor del mensaje puede editarlo")
+					}
+
 					/*
 						Show help window
 					*/
-				} else if ev.Rune() == '?' {
+				} else if activeMode != MODE_INPUT_THREAD && ev.Rune() == '?' {
 					lastActiveMode = activeMode
 					activeMode = MODE_HELP
 

@@ -91,8 +91,8 @@ var names = []string{"sergio",
 	"karo",*/
 	"migualer"}
 
-var MIN_WORDS_PER_MESSAGE = 100
-var MAX_WORDS_PER_MESSAGE = 1000
+var MIN_WORDS_PER_MESSAGE = 50
+var MAX_WORDS_PER_MESSAGE = 200
 
 var MAX_BOARD_NUM_THREADS = 150
 var MIN_BOARD_NUM_THREADS = 80
@@ -114,10 +114,13 @@ func RandomText(min, max int) string {
 	nwords := rand.Intn(max-min) + min
 	for i := 0; i < nwords; i++ {
 		w := words[rand.Intn(len(words)-1)]
+		if i == 0 {
+			w = strings.Title(w)
+		}
 		text = text + " " + w
 	}
 
-	return strings.Title(text)
+	return strings.Trim(text, " ")
 }
 
 func RandomThread() *Thread {
