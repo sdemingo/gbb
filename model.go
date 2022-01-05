@@ -98,6 +98,14 @@ func (m *Message) Save(update bool) {
 	}
 }
 
+func (m *Message) Delete() {
+	q := fmt.Sprintf("DELETE FROM messages WHERE id='%d';", m.Id)
+	statement, err := db.Prepare(q)
+	if err == nil {
+		_, err = statement.Exec()
+	}
+}
+
 type Thread struct {
 	Messages []*Message
 	Title    string
@@ -139,6 +147,7 @@ func (t *Thread) Save() {
 	}
 }
 
+// Update
 func (t *Thread) Update() {
 	closed := 0
 	if t.isClosed {
@@ -152,6 +161,14 @@ func (t *Thread) Update() {
 	q := fmt.Sprintf("UPDATE threads SET isClosed='%d', isFixed='%d' WHERE id='%s';\n", closed, fixed, t.Id)
 	statement, err := db.Prepare(q)
 
+	if err == nil {
+		_, err = statement.Exec()
+	}
+}
+
+func (t *Thread) Delete() {
+	q := fmt.Sprintf("DELETE FROM threads WHERE id='%s';", t.Id)
+	statement, err := db.Prepare(q)
 	if err == nil {
 		_, err = statement.Exec()
 	}

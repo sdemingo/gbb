@@ -200,6 +200,7 @@ func UIRoutine(uic chan int) {
 							setWarningMessage("Borrado")
 							confirmDelete = false
 							board.delThread(deleteTh)
+							deleteTh.Delete()
 						} else {
 							setWarningMessage("Solo el autor del hilo puede borrarlo")
 						}
@@ -217,6 +218,7 @@ func UIRoutine(uic chan int) {
 							confirmDelete = false
 							thread.delMessage(deleteMsg)
 							activeMode = MODE_BOARD
+							deleteMsg.Delete()
 						} else {
 							setWarningMessage("Solo el autor del mensaje puede borrarlo")
 						}
