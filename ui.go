@@ -286,7 +286,7 @@ func (tp *ThreadPanel) Draw() {
 		}
 		if (tp.MaxLine - line) > len(mp.Lines) {
 			// El mensaje cabe completamente
-			line += mp.DrawAll(line, tp.MaxLine, (indexMp == tp.MessageSelected))
+			line = mp.DrawAll(line, tp.MaxLine, (indexMp == tp.MessageSelected))
 			for c := 2; c < tp.MaxCol-2; c++ {
 				tp.Panel.screen.SetContent(c, line, tcell.RuneHLine, nil, DefaultStyle)
 			}

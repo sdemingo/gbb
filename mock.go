@@ -87,18 +87,18 @@ var names = []string{"sergio",
 	"fterror",
 	"arkainoso",
 	"fefeiro",
-	"apolut",
-	"karo",*/
+	"apolut",*/
+	"karo",
 	"migualer"}
 
 var MIN_WORDS_PER_MESSAGE = 50
 var MAX_WORDS_PER_MESSAGE = 200
 
-var MAX_BOARD_NUM_THREADS = 150
-var MIN_BOARD_NUM_THREADS = 80
+var MAX_BOARD_NUM_THREADS = 25
+var MIN_BOARD_NUM_THREADS = 10
 
 var MAX_MESSAGES_PER_THREAD = 5
-var MIN_MESSAGES_PER_THREAD = 0
+var MIN_MESSAGES_PER_THREAD = 1
 
 func RandomString(len int) string {
 	b := make([]byte, len)
@@ -165,4 +165,18 @@ func createMockBoard() *Board {
 
 	sort.Sort(b)
 	return b
+}
+
+func createMockBoardSQL() {
+	nthreads := rand.Intn(MAX_BOARD_NUM_THREADS-MIN_BOARD_NUM_THREADS) + MIN_BOARD_NUM_THREADS
+	for i := 0; i < nthreads; i++ {
+		th := RandomThread()
+		fmt.Printf("INSERT INTO threads (id,title,isClosed,isFixed) VALUES ('%s','%s',0,0);\n", th.Id, th.Title)
+		nmessages := rand.Intn(MAX_MESSAGES_PER_THREAD-MIN_MESSAGES_PER_THREAD) + MIN_MESSAGES_PER_THREAD
+		for i := 0; i < nmessages; i++ {
+			m := RandomMessage()
+			date := m.DateString()
+			fmt.Printf("INSERT INTO messages (thread, author,stamp,content) VALUES ('%s','%s','%s','%s');\n", th.Id, m.Author, date, m.Text)
+		}
+	}
 }

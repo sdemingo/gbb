@@ -5,14 +5,18 @@ import (
 	"time"
 )
 
+var DATE_FORMAT = "02 Jan-06"
+
 type Message struct {
+	Id     int
+	Parent *Thread
 	Author string
 	Stamp  time.Time
 	Text   string
 }
 
 func NewMessage(author string, text string) *Message {
-	return &Message{Author: author, Text: text, Stamp: time.Now()}
+	return &Message{Parent: nil, Author: author, Text: text, Stamp: time.Now()}
 }
 
 func (m *Message) ResumeText() string {
@@ -43,6 +47,9 @@ func SplitStringInLines(text string, nchars int) []string {
 			}
 		}
 	}
+	if len(lines) > 0 {
+		lines = append(lines, line)
+	}
 	return lines
 }
 
@@ -63,8 +70,32 @@ func (m *Message) DateString() string {
 	return m.Stamp.Format(DATE_FORMAT)
 }
 
+func (m *Message) SetDate(datestr string) {
+	t, err := time.Parse(DATE_FORMAT, datestr)
+	if err == nil {
+		m.Stamp = t
+	}
+
+}
+
 func (m *Message) String() string {
 	return fmt.Sprintf("[%s el %s] %s ...", m.Author, m.DateString(), m.ResumeText())
+}
+
+func (m *Message) Save(update bool) {
+	// insert in DB
+	date := m.DateString()
+	q := ""
+	if update {
+		q = fmt.Sprintf("UPDATE messages SET content='%s' WHERE id='%d';", m.Text, m.Id)
+	} else {
+		q = fmt.Sprintf("INSERT INTO messages (thread, author,stamp,content) VALUES ('%s','%s','%s','%s');", m.Parent.Id, m.Author, date, m.Text)
+	}
+	statement, err := db.Prepare(q)
+
+	if err == nil {
+		_, err = statement.Exec()
+	}
 }
 
 type Thread struct {
@@ -89,8 +120,49 @@ func NewThread(title string, first *Message) *Thread {
 	return t
 }
 
+func (t *Thread) Save() {
+	// insert in DB
+	closed := 0
+	if t.isClosed {
+		closed = 1
+	}
+	fixed := 0
+	if t.isFixed {
+		fixed = 1
+	}
+
+	q := fmt.Sprintf("INSERT INTO threads (id,title,isClosed,isFixed) VALUES ('%s','%s','%d','%d');\n", t.Id, t.Title, closed, fixed)
+	statement, err := db.Prepare(q)
+
+	if err == nil {
+		_, err = statement.Exec()
+	}
+}
+
+func (t *Thread) Update() {
+	closed := 0
+	if t.isClosed {
+		closed = 1
+	}
+	fixed := 0
+	if t.isFixed {
+		fixed = 1
+	}
+
+	q := fmt.Sprintf("UPDATE threads SET isClosed='%d', isFixed='%d' WHERE id='%s';\n", closed, fixed, t.Id)
+	statement, err := db.Prepare(q)
+
+	if err == nil {
+		_, err = statement.Exec()
+	}
+}
+
 func (t *Thread) addMessage(m *Message) {
 	if m != nil {
+		if t.Messages == nil {
+			t.Messages = make([]*Message, 0)
+		}
+		m.Parent = t
 		t.Messages = append(t.Messages, m)
 	}
 }
@@ -114,10 +186,16 @@ func (t *Thread) delMessage(m *Message) {
 }
 
 func (t *Thread) CreateStamp() time.Time {
+	if (t.Messages == nil) || len(t.Messages) == 0 {
+		return time.Time{}
+	}
 	return t.Messages[0].Stamp
 }
 
 func (t *Thread) UpdateStamp() time.Time {
+	if (t.Messages == nil) || len(t.Messages) == 0 {
+		return time.Time{}
+	}
 	if len(t.Messages) > 1 {
 		return t.Messages[len(t.Messages)-1].Stamp
 	} else {
@@ -126,14 +204,17 @@ func (t *Thread) UpdateStamp() time.Time {
 }
 
 func (t *Thread) Author() string {
+	if (t.Messages == nil) || len(t.Messages) == 0 {
+		return ""
+	}
 	return t.Messages[0].Author
 }
 
 func (t *Thread) String() string {
 	if len(t.Messages) > 1 {
-		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Messages[0].Author, len(t.Messages)-1, t.Title)
+		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Author(), len(t.Messages)-1, t.Title)
 	} else {
-		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Messages[0].Author, t.Title)
+		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Author(), t.Title)
 	}
 
 }
@@ -145,15 +226,74 @@ type Board struct {
 func CreateBoard() *Board {
 	b := new(Board)
 	b.Threads = make([]*Thread, 0)
+
 	return b
+}
+
+func (b *Board) Load() error {
+	// load board from database
+	db := GetConnection()
+
+	// Recuperamos todos los threads
+	q := `SELECT
+            id, title, isClosed, isFixed
+            FROM threads`
+
+	rows, err := db.Query(q)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var th Thread
+		var closedVal, fixedVal int
+		rows.Scan(
+			&th.Id,
+			&th.Title,
+			&closedVal,
+			&fixedVal,
+		)
+		th.isClosed = (closedVal == 1)
+		th.isFixed = (fixedVal == 1)
+		b.Threads = append(b.Threads, &th)
+	}
+
+	// Recuperamos todos los mensajes y los metemos en sus threads
+	q = `SELECT
+		id, thread, author, stamp, content
+		FROM messages`
+
+	rows, err = db.Query(q)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		m := NewMessage("", "")
+		threadKey := ""
+		dateString := ""
+		rows.Scan(
+			&m.Id,
+			&threadKey,
+			&m.Author,
+			&dateString,
+			&m.Text,
+		)
+		th := b.getThread(threadKey)
+		if th != nil {
+			m.SetDate(dateString)
+			th.addMessage(m)
+		}
+	}
+
+	return nil
 }
 
 func (b *Board) Len() int      { return len(b.Threads) }
 func (b *Board) Swap(i, j int) { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
 
-/*func (b *Board) Less(i, j int) bool {
-	return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
-}*/
 func (b *Board) Less(i, j int) bool {
 	if b.Threads[i].isFixed == b.Threads[j].isFixed {
 		return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
@@ -165,6 +305,15 @@ func (b *Board) Less(i, j int) bool {
 		}
 	}
 
+}
+
+func (b *Board) getThread(key string) *Thread {
+	for _, th := range b.Threads {
+		if th.Id == key {
+			return th
+		}
+	}
+	return nil
 }
 
 func (b *Board) addThread(th *Thread) {

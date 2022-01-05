@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"math/rand"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const HELP_TEXT = `
@@ -39,7 +41,6 @@ const HELP_TEXT = `
 	c      -    Cerrar un hilo para nuevas respuestas. Solo para administradores
 `
 
-var DATE_FORMAT = "02 Jan-06"
 var APP_TITLE = "GBB v1.0"
 var DefaultStyle tcell.Style
 var Username string
@@ -62,11 +63,35 @@ var activeThread *Thread
 var newMessage *Message
 var newMessageInitialText string = ""
 
+var db *sql.DB
+
+const dbPathFile = "gbb.db" // must be /var/gbb/gbb.db
+
+func GetConnection() *sql.DB {
+	// Para evitar realizar una nueva conexión en cada llamada a
+	// la función GetConnection.
+	if db != nil {
+		return db
+	} // Declaramos la variable err para poder usar el operador
+	// de asignación “=” en lugar que el de asignación corta,
+	// para evitar que cree una nueva variable db en este scope y
+	// en su lugar que inicialice la variable db que declaramos a
+	// nivel de paquete.
+	var err error // Conexión a la base de datos
+	db, err = sql.Open("sqlite3", dbPathFile)
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
 func editorRoutine(c chan int) {
+	update := (len(newMessageInitialText) != 0)
 	err, content := InputMessageFromEditor(newMessageInitialText)
 	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
+		newMessage.Save(update)
 		newMessage = nil
 	}
 	c <- 1
@@ -116,6 +141,8 @@ func UIRoutine(uic chan int) {
 					activeMode = MODE_BOARD
 				} else if activeMode == MODE_HELP {
 					activeMode = lastActiveMode
+				} else if activeMode == MODE_INPUT_THREAD {
+					activeMode = MODE_BOARD
 				}
 
 			} else if ev.Key() == tcell.KeyDown {
@@ -144,6 +171,8 @@ func UIRoutine(uic chan int) {
 					newMessage = NewMessage(Username, content)
 					thread := NewThread(title, newMessage)
 					board.addThread(thread)
+					thread.Save()
+					newMessage.Parent = thread
 					exit = true // exit to run the editor
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
@@ -242,6 +271,7 @@ func UIRoutine(uic chan int) {
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
 					thread.isFixed = !thread.isFixed
 					sort.Sort(board)
+					thread.Update()
 
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' && isAdmin {
 					/*
@@ -255,7 +285,7 @@ func UIRoutine(uic chan int) {
 						thread.isClosed = false
 						thread.Title = strings.TrimPrefix(thread.Title, "[Cerrado]")
 					}
-					// ¡¡¡¡¡¡¡¡¡¡¡¡¡¡ UPDATE DATABASE !!!!!!!!!!!!!!!!!!!
+					thread.Update()
 
 					/*
 						Writting in top buffer
@@ -272,8 +302,8 @@ func UIRoutine(uic chan int) {
 }
 
 func main() {
-
 	rand.Seed(time.Now().UnixNano())
+
 	user, err := user.Current()
 	if err != nil {
 		panic(err)
@@ -281,7 +311,12 @@ func main() {
 	Username = user.Username
 	isAdmin = (os.Getuid() == 0)
 
-	board = createMockBoard()
+	board = CreateBoard()
+	err = board.Load()
+	if err != nil {
+		panic(err)
+	}
+	//board = createMockBoard()
 
 	uiChannel = make(chan int)
 	for {
