@@ -7,6 +7,12 @@ import (
 
 var DATE_FORMAT = "02 Jan-06"
 
+/*
+
+	Mensajes
+
+*/
+
 type Message struct {
 	Id     int
 	Parent *Thread
@@ -19,13 +25,8 @@ func NewMessage(author string, text string) *Message {
 	return &Message{Parent: nil, Author: author, Text: text, Stamp: time.Now()}
 }
 
-func (m *Message) ResumeText() string {
-	if len(m.Text) > 40 {
-		return m.Text[:40]
-	}
-	return m.Text
-}
-
+// Función auxiliar para separar en diferentes strings un string. Los parte en strings de
+// como mucho nchars
 func SplitStringInLines(text string, nchars int) []string {
 	lines := make([]string, 0)
 
@@ -53,6 +54,8 @@ func SplitStringInLines(text string, nchars int) []string {
 	return lines
 }
 
+// Función que utiliza a SplitStringInLines para separar en varías líneas
+// el contenido de un mensaje
 func (m *Message) SplitInLines(nchars int) []string {
 
 	msg := make([]string, 0)
@@ -66,10 +69,12 @@ func (m *Message) SplitInLines(nchars int) []string {
 	return msg
 }
 
+// Imprime la fecha en el formato establecido
 func (m *Message) DateString() string {
 	return m.Stamp.Format(DATE_FORMAT)
 }
 
+// Fija una fecha nueva a un mensaje
 func (m *Message) SetDate(datestr string) {
 	t, err := time.Parse(DATE_FORMAT, datestr)
 	if err == nil {
@@ -78,10 +83,9 @@ func (m *Message) SetDate(datestr string) {
 
 }
 
-func (m *Message) String() string {
-	return fmt.Sprintf("[%s el %s] %s ...", m.Author, m.DateString(), m.ResumeText())
-}
-
+// Inserta un mensaje nuevo o actualiza un mensaje ya guardado en la base de datos.
+// El parámetro update decide esto. En el caso de ser actualizado, solo podemos
+// cambiar el contenido del mensaje
 func (m *Message) Save(update bool) {
 	// insert in DB
 	date := m.DateString()
@@ -98,6 +102,7 @@ func (m *Message) Save(update bool) {
 	}
 }
 
+// Borra un mensaje de la base de datos
 func (m *Message) Delete() {
 	q := fmt.Sprintf("DELETE FROM messages WHERE id='%d';", m.Id)
 	statement, err := db.Prepare(q)
@@ -105,6 +110,12 @@ func (m *Message) Delete() {
 		_, err = statement.Exec()
 	}
 }
+
+/*
+
+	Hilos
+
+*/
 
 type Thread struct {
 	Messages []*Message
@@ -128,8 +139,8 @@ func NewThread(title string, first *Message) *Thread {
 	return t
 }
 
+// Inserta un hilo nuevo en la base de datos.
 func (t *Thread) Save() {
-	// insert in DB
 	closed := 0
 	if t.isClosed {
 		closed = 1
@@ -138,16 +149,14 @@ func (t *Thread) Save() {
 	if t.isFixed {
 		fixed = 1
 	}
-
 	q := fmt.Sprintf("INSERT INTO threads (id,title,isClosed,isFixed) VALUES ('%s','%s','%d','%d');\n", t.Id, t.Title, closed, fixed)
 	statement, err := db.Prepare(q)
-
 	if err == nil {
 		_, err = statement.Exec()
 	}
 }
 
-// Update
+// Actualiza un hilo de la base de datos. Solo pueden ser actualizados los campos de fixed o closed.
 func (t *Thread) Update() {
 	closed := 0
 	if t.isClosed {
@@ -166,6 +175,7 @@ func (t *Thread) Update() {
 	}
 }
 
+// Borra un hilo de la base de datos
 func (t *Thread) Delete() {
 	q := fmt.Sprintf("DELETE FROM threads WHERE id='%s';", t.Id)
 	statement, err := db.Prepare(q)
@@ -174,6 +184,7 @@ func (t *Thread) Delete() {
 	}
 }
 
+// Añade un mensaje al hilo
 func (t *Thread) addMessage(m *Message) {
 	if m != nil {
 		if t.Messages == nil {
@@ -184,6 +195,7 @@ func (t *Thread) addMessage(m *Message) {
 	}
 }
 
+// Elimina un mensaje del hilo
 func (t *Thread) delMessage(m *Message) {
 	i := 0
 	if m != nil {
@@ -202,6 +214,7 @@ func (t *Thread) delMessage(m *Message) {
 	}
 }
 
+// Retorna la fecha de creación del hilo (la del primer mensaje)
 func (t *Thread) CreateStamp() time.Time {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return time.Time{}
@@ -209,6 +222,7 @@ func (t *Thread) CreateStamp() time.Time {
 	return t.Messages[0].Stamp
 }
 
+// Retorna la fecha de modificación del hilo (la del último mensaje)
 func (t *Thread) UpdateStamp() time.Time {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return time.Time{}
@@ -220,6 +234,7 @@ func (t *Thread) UpdateStamp() time.Time {
 	}
 }
 
+// Retorna el autor del hilo (el del primer mensaje)
 func (t *Thread) Author() string {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return ""
@@ -233,8 +248,13 @@ func (t *Thread) String() string {
 	} else {
 		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Author(), t.Title)
 	}
-
 }
+
+/*
+
+	El tablón
+
+*/
 
 type Board struct {
 	Threads []*Thread
@@ -247,11 +267,11 @@ func CreateBoard() *Board {
 	return b
 }
 
+// Carga el tablón de la base de datos
 func (b *Board) Load() error {
-	// load board from database
 	db := GetConnection()
 
-	// Recuperamos todos los threads
+	// Recuperamos los threads
 	q := `SELECT
             id, title, isClosed, isFixed
             FROM threads`
@@ -304,13 +324,11 @@ func (b *Board) Load() error {
 			th.addMessage(m)
 		}
 	}
-
 	return nil
 }
 
 func (b *Board) Len() int      { return len(b.Threads) }
 func (b *Board) Swap(i, j int) { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
-
 func (b *Board) Less(i, j int) bool {
 	if b.Threads[i].isFixed == b.Threads[j].isFixed {
 		return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
@@ -321,7 +339,6 @@ func (b *Board) Less(i, j int) bool {
 			return false
 		}
 	}
-
 }
 
 func (b *Board) getThread(key string) *Thread {
@@ -351,14 +368,6 @@ func (b *Board) delThread(th *Thread) {
 			b.Threads = append(b.Threads[:d], b.Threads[d+1:]...)
 		} else {
 			b.Threads = b.Threads[:len(b.Threads)-1]
-		}
-	}
-}
-
-func (b *Board) Print() {
-	for _, th := range b.Threads {
-		if th != nil {
-			fmt.Printf("%s\n", th.String())
 		}
 	}
 }
