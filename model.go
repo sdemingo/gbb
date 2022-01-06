@@ -104,7 +104,7 @@ func (m *Message) Save(update bool) {
 
 // Borra un mensaje de la base de datos
 func (m *Message) Delete() {
-	q := fmt.Sprintf("DELETE FROM messages WHERE id='%d';", m.Id)
+	q := fmt.Sprintf("DELETE FROM messages WHERE thread='%s';", m.Parent.Id)
 	statement, err := db.Prepare(q)
 	if err == nil {
 		_, err = statement.Exec()
@@ -177,6 +177,9 @@ func (t *Thread) Update() {
 
 // Borra un hilo de la base de datos
 func (t *Thread) Delete() {
+	for _, m := range t.Messages {
+		m.Delete()
+	}
 	q := fmt.Sprintf("DELETE FROM threads WHERE id='%s';", t.Id)
 	statement, err := db.Prepare(q)
 	if err == nil {

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Set filepath for the Database
+DBPATH="gbb.db"
+
+rm $DBPATH
+sqlite3 $DBPATH "CREATE TABLE threads (id VARCHAR(32) PRIMARY KEY, title VARCHAR(64) NULL,  isClosed INTEGER, isFixed INTEGER);" ".exit"
+sqlite3 $DBPATH "CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, thread VARCHAR(32), author VARCHAR(255) NOT NULL, stamp TEXT, content TEXT);" ".exit"
+
