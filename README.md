@@ -23,4 +23,8 @@ All the help messages are in spanish but if you want to use `gbb` in your server
 
 ## Build
 
-To compile `gbb` you must be installed Go17 or newest. 
+To compile `gbb` you must be installed Go17 or newest. Only type:
+
+```
+go build
+```

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -68,16 +69,10 @@ var db *sql.DB
 const dbPathFile = "gbb.db" // must be /var/gbb/gbb.db
 
 func GetConnection() *sql.DB {
-	// Para evitar realizar una nueva conexión en cada llamada a
-	// la función GetConnection.
 	if db != nil {
 		return db
-	} // Declaramos la variable err para poder usar el operador
-	// de asignación “=” en lugar que el de asignación corta,
-	// para evitar que cree una nueva variable db en este scope y
-	// en su lugar que inicialice la variable db que declaramos a
-	// nivel de paquete.
-	var err error // Conexión a la base de datos
+	}
+	var err error
 	db, err = sql.Open("sqlite3", dbPathFile)
 	if err != nil {
 		panic(err)
@@ -316,7 +311,8 @@ func main() {
 	board = CreateBoard()
 	err = board.Load()
 	if err != nil {
-		panic(err)
+		fmt.Println("Error: Database not found. You must execute initdb to create the database file")
+		os.Exit(-1)
 	}
 	//board = createMockBoard()
 
