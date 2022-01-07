@@ -276,11 +276,14 @@ func (tp *ThreadPanel) Draw() {
 	tp.CursorLine = tp.MinLine
 	tp.Panel.Draw()
 
-	drawText(tp.Panel.screen, 1, 0, 13, 1, DefaultStyle, fmt.Sprintf("%d Respuestas", len(tp.Thread.Messages)-1))
-	drawText(tp.Panel.screen, 16, 0, tp.MaxCol, 1, DefaultStyle, tp.Thread.Title)
+	//drawText(tp.Panel.screen, 1, 0, 13, 1, DefaultStyle, fmt.Sprintf("%d Respuestas", len(tp.Thread.Messages)-1))
+	drawText(tp.Panel.screen, 26, 0, tp.MaxCol, 1, DefaultStyle, tp.Thread.Title)
 
 	line := tp.MinLine
 	for indexMp, mp := range tp.Messages {
+		if tp.MessageSelected > 0 {
+			drawText(tp.Panel.screen, 1, 0, 25, 1, DefaultStyle, fmt.Sprintf("Respuesta %d de %d", tp.MessageSelected, len(tp.Thread.Messages)-1))
+		}
 		if indexMp < tp.MessageSelected {
 			continue
 		}
