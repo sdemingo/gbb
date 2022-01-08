@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -25,33 +26,25 @@ func NewMessage(author string, text string) *Message {
 	return &Message{Parent: nil, Author: author, Text: text, Stamp: time.Now()}
 }
 
-// Función auxiliar para separar en diferentes strings un string. Los parte en strings de
-// como mucho nchars
+// Trocea el texto en líneas de, como máximo nchars. Respeta la longitud
+// de palabra y no las trocea dejando el texto justificado a la izquierda
 func SplitStringInLines(text string, nchars int) []string {
-	lines := make([]string, 0)
-
-	count := 0
-	line := ""
-	for i := 0; i < len(text); i++ {
-		if text[i] == '\n' {
-			lines = append(lines, line)
-			count = 0
-			line = ""
-			continue
+	words := strings.Fields(strings.TrimSpace(text))
+	if len(words) == 0 {
+		return []string{""}
+	}
+	wText := words[0]
+	spaceLeft := nchars - len(wText)
+	for _, word := range words[1:] {
+		if len(word)+1 > spaceLeft {
+			wText += "\n" + word
+			spaceLeft = nchars - len(word)
 		} else {
-			line += text[i : i+1]
-			count++
-			if count == nchars {
-				lines = append(lines, line)
-				line = ""
-				count = 0
-			}
+			wText += " " + word
+			spaceLeft -= 1 + len(word)
 		}
 	}
-	if len(lines) > 0 {
-		lines = append(lines, line)
-	}
-	return lines
+	return strings.Split(wText, "\n")
 }
 
 // Función que utiliza a SplitStringInLines para separar en varías líneas
