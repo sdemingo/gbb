@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -28,7 +27,7 @@ func NewMessage(author string, text string) *Message {
 
 // Trocea el texto en líneas de, como máximo nchars. Respeta la longitud
 // de palabra y no las trocea dejando el texto justificado a la izquierda
-func SplitStringInLines(text string, nchars int) []string {
+/*func SplitStringInLines(text string, nchars int) []string {
 	words := strings.Fields(strings.TrimSpace(text))
 	if len(words) == 0 {
 		return []string{""}
@@ -45,6 +44,34 @@ func SplitStringInLines(text string, nchars int) []string {
 		}
 	}
 	return strings.Split(wText, "\n")
+}*/
+
+// Trocea el texto en líneas de, como máximo nchars. No hace text wrapping
+func SplitStringInLines(text string, nchars int) []string {
+	lines := make([]string, 0)
+
+	count := 0
+	line := ""
+	for i := 0; i < len(text); i++ {
+		if text[i] == '\n' {
+			lines = append(lines, line)
+			count = 0
+			line = ""
+			continue
+		} else {
+			line += text[i : i+1]
+			count++
+			if count == nchars {
+				lines = append(lines, line)
+				line = ""
+				count = 0
+			}
+		}
+	}
+	if len(lines) > 0 {
+		lines = append(lines, line)
+	}
+	return lines
 }
 
 // Función que utiliza a SplitStringInLines para separar en varías líneas
