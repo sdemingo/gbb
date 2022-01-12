@@ -17,29 +17,27 @@ import (
 
 const HELP_TEXT = `
 
-
 	Índice de teclas y comandos
 	===========================
 
 	a      -    Añade un hilo o un mensaje
-
 	d      -    Borrar un hilo o un mensaje
-
 	e      -    Editar un mensaje
-
 	↑↓     -    Navegar entre hilos o mensajes
-
 	AvPg   - 	Avanzar página de un mensaje
-
 	RePg   -    Retroceder página de un mensaje
-
 	ESC    -    Ir a la ventana anterior
-
 	?      -    Mostrar este mensaje de ayuda
-
 	f      -    Fijar un hilo en la cabecera. Solo para administradores
-
 	c      -    Cerrar un hilo para nuevas respuestas. Solo para administradores
+
+
+
+	Acerca de GBB
+	=============
+
+	GBB ha sido licenciado con GNU GENERAL PUBLIC LICENSE Version 3
+	Su código está disponible en: https://github.com/sdemingo/gbb
 `
 
 var APP_TITLE = "GBB v1.0"
