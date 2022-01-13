@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 )
 
 var DATE_FORMAT = "02 Jan-06"
@@ -46,10 +48,10 @@ func NewMessage(author string, text string) *Message {
 	return strings.Split(wText, "\n")
 }*/
 
-// Trocea el texto en líneas de, como máximo nchars. No hace text wrapping
+// Trocea el texto en líneas de, como máximo nchars.
+// Respeta el word wrapping
 func SplitStringInLines(text string, nchars int) []string {
 	lines := make([]string, 0)
-
 	count := 0
 	line := ""
 	for i := 0; i < len(text); i++ {
@@ -62,6 +64,11 @@ func SplitStringInLines(text string, nchars int) []string {
 			line += text[i : i+1]
 			count++
 			if count == nchars {
+				nline := strings.TrimRightFunc(line, func(r rune) bool {
+					return !unicode.IsSpace(r) && !unicode.IsPunct(r)
+				})
+				i -= (len(line) - len(nline)) // retraso i la diferencia entre line y nline (longitud del sufijo quitado)
+				line = nline
 				lines = append(lines, line)
 				line = ""
 				count = 0
