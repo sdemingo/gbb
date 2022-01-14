@@ -23,6 +23,7 @@ const HELP_TEXT = `
 	a      -    Añade un hilo o un mensaje
 	d      -    Borrar un hilo o un mensaje
 	e      -    Editar un mensaje
+	b      -    Buscar hilos por palabras clave
 	↑↓     -    Navegar entre hilos o mensajes
 	AvPg   - 	Avanzar página de un mensaje
 	RePg   -    Retroceder página de un mensaje
@@ -50,10 +51,11 @@ var uiChannel chan int
 var confirmDelete bool
 
 const (
-	MODE_HELP         = 3
-	MODE_INPUT_THREAD = 2
-	MODE_THREAD       = 1
-	MODE_BOARD        = 0
+	MODE_SEARCH_THREAD = 4
+	MODE_HELP          = 3
+	MODE_INPUT_THREAD  = 2
+	MODE_THREAD        = 1
+	MODE_BOARD         = 0
 )
 
 var board *Board
@@ -127,14 +129,22 @@ func UIRoutine(uic chan int) {
 			if ev.Rune() != 'd' {
 				confirmDelete = false
 			}
+
+			/*
+				'ESC' key commands:
+			*/
 			if ev.Key() == tcell.KeyESC {
 				if activeMode == MODE_BOARD {
-					quit(s)
+					if board.IsBoardFiltered() {
+						board.ResetFilter()
+					} else {
+						quit(s)
+					}
 				} else if activeMode == MODE_THREAD {
 					activeMode = MODE_BOARD
 				} else if activeMode == MODE_HELP {
 					activeMode = lastActiveMode
-				} else if activeMode == MODE_INPUT_THREAD {
+				} else if activeMode == MODE_INPUT_THREAD || activeMode == MODE_SEARCH_THREAD {
 					activeMode = MODE_BOARD
 				}
 
@@ -152,9 +162,14 @@ func UIRoutine(uic chan int) {
 				if activeMode == MODE_THREAD {
 					threadPanel.UpCursor()
 				}
+
+				/*
+					'Enter' key commands:
+				*/
 			} else if ev.Key() == tcell.KeyEnter {
 				if activeMode == MODE_BOARD {
 					activeThread = board.Threads[boardPanel.GetThreadSelectedIndex()]
+					lastActiveMode = activeMode
 					activeMode = MODE_THREAD
 					refreshPanels(s, true)
 
@@ -167,6 +182,10 @@ func UIRoutine(uic chan int) {
 					thread.Save()
 					newMessage.Parent = thread
 					exit = true // exit to run the editor
+				} else if activeMode == MODE_SEARCH_THREAD {
+					pattern := messageBuffer.Msg
+					board.filterThreads(pattern)
+					activeMode = MODE_BOARD
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
 				if activeMode == MODE_THREAD {
@@ -235,6 +254,13 @@ func UIRoutine(uic chan int) {
 						exit = true // exit to run the editor
 					}
 
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'b' {
+					/*
+						Search a thread
+					*/
+					activeMode = MODE_SEARCH_THREAD
+					messageBuffer = NewMessageBuffer(s, 10)
+
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'e' {
 					/*
 						Edit message
@@ -285,7 +311,7 @@ func UIRoutine(uic chan int) {
 					/*
 						Writting in top buffer
 					*/
-				} else if activeMode == MODE_INPUT_THREAD {
+				} else if activeMode == MODE_INPUT_THREAD || activeMode == MODE_SEARCH_THREAD {
 					messageBuffer.AddRuneToBuffer(ev.Rune())
 				}
 			}
@@ -312,6 +338,7 @@ func main() {
 		fmt.Println("Error: Database not found. You must execute initdb to create the database file")
 		os.Exit(-1)
 	}
+
 	//board = createMockBoard()
 
 	uiChannel = make(chan int)

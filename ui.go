@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gdamore/tcell"
 )
@@ -188,7 +189,7 @@ func (bp *BoardPanel) Draw() {
 		if line >= bp.MaxLine {
 			break
 		}
-		if bp.Board.Threads[i] != nil {
+		if bp.Board.Threads[i] != nil && !bp.Board.Threads[i].hide {
 			text := fmt.Sprintf("%s", bp.Board.Threads[i])
 			isSelected := line == bp.CursorLine
 			isFixed := bp.Board.Threads[i].isFixed
@@ -470,8 +471,14 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 		threadPanel.Draw()
 	} else if activeMode == MODE_INPUT_THREAD {
 		InputThreadPanel(scr)
+	} else if activeMode == MODE_SEARCH_THREAD {
+		SearchThreadPanel(scr)
 	} else if activeMode == MODE_HELP {
 		HelpPanel(scr)
+	}
+
+	if board.IsBoardFiltered() {
+		ShowFilteredHeader(scr)
 	}
 
 	if len(warningMessage) > 0 {
@@ -488,6 +495,18 @@ func InputThreadPanel(scr tcell.Screen) {
 	}
 	drawText(scr, 1, 0, 8, 0, DefaultStyle, "Título:")
 	drawText(scr, 9, 0, w, 0, DefaultStyle, messageBuffer.Msg)
+
+	scr.ShowCursor(messageBuffer.Cursor, 0)
+}
+
+// Creación de la UI para buscar un nuevo hilo
+func SearchThreadPanel(scr tcell.Screen) {
+	w, _ := scr.Size()
+	for col := 1; col < w; col++ {
+		scr.SetContent(col, 0, ' ', nil, DefaultStyle)
+	}
+	drawText(scr, 1, 0, 10, 0, DefaultStyle, "Búsqueda:")
+	drawText(scr, 11, 0, w, 0, DefaultStyle, messageBuffer.Msg)
 
 	scr.ShowCursor(messageBuffer.Cursor, 0)
 }
@@ -580,4 +599,17 @@ func setWarningMessage(text string) {
 
 func resetWarningMessage() {
 	warningMessage = ""
+}
+
+/*
+	Cabecera informativa para las búsquedas
+*/
+
+func ShowFilteredHeader(scr tcell.Screen) {
+	w, _ := scr.Size()
+	for c := 1; c < w-1; c++ {
+		drawText(scr, c, 0, w, 0, DefaultStyle, " ")
+	}
+	drawText(scr, 1, 0, w, 0, DefaultStyle, fmt.Sprintf(" Búsqueda: %s", strings.Join(board.Filter, " ")))
+	scr.HideCursor()
 }

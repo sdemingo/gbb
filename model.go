@@ -27,27 +27,6 @@ func NewMessage(author string, text string) *Message {
 	return &Message{Parent: nil, Author: author, Text: text, Stamp: time.Now()}
 }
 
-// Trocea el texto en líneas de, como máximo nchars. Respeta la longitud
-// de palabra y no las trocea dejando el texto justificado a la izquierda
-/*func SplitStringInLines(text string, nchars int) []string {
-	words := strings.Fields(strings.TrimSpace(text))
-	if len(words) == 0 {
-		return []string{""}
-	}
-	wText := words[0]
-	spaceLeft := nchars - len(wText)
-	for _, word := range words[1:] {
-		if len(word)+1 > spaceLeft {
-			wText += "\n" + word
-			spaceLeft = nchars - len(word)
-		} else {
-			wText += " " + word
-			spaceLeft -= 1 + len(word)
-		}
-	}
-	return strings.Split(wText, "\n")
-}*/
-
 // Trocea el texto en líneas de, como máximo nchars.
 // Respeta el word wrapping
 func SplitStringInLines(text string, nchars int) []string {
@@ -150,6 +129,7 @@ type Thread struct {
 	Id       string
 	isClosed bool
 	isFixed  bool
+	hide     bool
 }
 
 func NewThread(title string, first *Message) *Thread {
@@ -163,6 +143,7 @@ func NewThread(title string, first *Message) *Thread {
 	t.Id = RandomString(32)
 	t.isClosed = false
 	t.isFixed = false
+	t.hide = false
 	return t
 }
 
@@ -288,12 +269,13 @@ func (t *Thread) String() string {
 
 type Board struct {
 	Threads []*Thread
+	Filter  []string
 }
 
 func CreateBoard() *Board {
 	b := new(Board)
 	b.Threads = make([]*Thread, 0)
-
+	b.Filter = make([]string, 0)
 	return b
 }
 
@@ -323,6 +305,7 @@ func (b *Board) Load() error {
 		)
 		th.isClosed = (closedVal == 1)
 		th.isFixed = (fixedVal == 1)
+		th.hide = false
 		b.Threads = append(b.Threads, &th)
 	}
 
@@ -401,3 +384,40 @@ func (b *Board) delThread(th *Thread) {
 		}
 	}
 }
+
+// Filter board's threads. Only show threads with messages
+// that have the words in their contents
+func (b *Board) filterThreads(filter string) {
+	b.Filter = []string{filter}
+	//b.Filter := strings.Split(filter, " ,")
+	for i := range b.Threads {
+		b.Threads[i].hide = true
+		for _, m := range b.Threads[i].Messages {
+			for _, w := range b.Filter {
+				if strings.Index(m.Text, w) >= 0 {
+					b.Threads[i].hide = false
+				}
+			}
+		}
+	}
+}
+
+func (b *Board) IsBoardFiltered() bool {
+	return len(b.Filter) != 0
+}
+
+func (b *Board) ResetFilter() {
+	for i := range b.Threads {
+		b.Threads[i].hide = false
+	}
+	b.Filter = make([]string, 0)
+}
+
+/*
+// Show all threads. It should be used after a filter operation
+// to show all threads again
+func (b *Board) showAllThreads() {
+	for _, th := range b.Threads {
+		th.hide = false
+	}
+}*/
