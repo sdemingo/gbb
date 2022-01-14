@@ -7,6 +7,7 @@ The keys to use it are:
 - `a`: Add a new thread or new message
 - `d`: Delete a thread or a message. Only for admin or for the author 
 - `e`: Edit a message. Only for admin or for the author 
+- `b`: Search thread by a filter
 - `f`: Fix a thread in the header of the board. Only for the admin
 - `c`: Close a thread. Only for the admin
 - `↑↓`: With arrows keys you can navegate into threads or the replies
