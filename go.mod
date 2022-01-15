@@ -6,6 +6,7 @@ require github.com/gdamore/tcell v1.4.0
 
 require (
 	github.com/gdamore/encoding v1.0.0 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.0.3 // indirect
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/mattn/go-sqlite3 v1.14.10 // indirect

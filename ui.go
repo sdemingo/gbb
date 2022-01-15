@@ -192,7 +192,7 @@ func (bp *BoardPanel) Draw() {
 		if bp.Board.Threads[i] != nil && !bp.Board.Threads[i].hide {
 			text := fmt.Sprintf("%s", bp.Board.Threads[i])
 			isSelected := line == bp.CursorLine
-			isFixed := bp.Board.Threads[i].isFixed
+			isFixed := bp.Board.Threads[i].IsFixed
 
 			drawText(bp.Panel.screen, 1, line, bp.MaxCol, line, DefaultStyle.Reverse(isSelected).Bold(isFixed), text)
 			line++

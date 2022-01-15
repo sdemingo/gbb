@@ -86,7 +86,13 @@ func editorRoutine(c chan int) {
 	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
-		newMessage.Save(update)
+		//newMessage.Save(update)
+		threadKey := board.Threads[boardPanel.GetThreadSelectedIndex()].Id
+		if !update {
+			UpdateThreadWithNewReply(newMessage, threadKey)
+		} else {
+			//UpdateMessage(newMessage, threadKey)
+		}
 		newMessage = nil
 	}
 	c <- 1
@@ -168,7 +174,8 @@ func UIRoutine(uic chan int) {
 				*/
 			} else if ev.Key() == tcell.KeyEnter {
 				if activeMode == MODE_BOARD {
-					activeThread = board.Threads[boardPanel.GetThreadSelectedIndex()]
+					activeThreadId := board.Threads[boardPanel.GetThreadSelectedIndex()].Id
+					activeThread = FetchThread(activeThreadId)
 					lastActiveMode = activeMode
 					activeMode = MODE_THREAD
 					refreshPanels(s, true)
@@ -178,13 +185,13 @@ func UIRoutine(uic chan int) {
 					content := ""
 					newMessage = NewMessage(Username, content)
 					thread := NewThread(title, newMessage)
-					board.addThread(thread)
+					board.addThread(thread) // cambiar por API
 					thread.Save()
 					newMessage.Parent = thread
 					exit = true // exit to run the editor
 				} else if activeMode == MODE_SEARCH_THREAD {
 					pattern := messageBuffer.Msg
-					board.filterThreads(pattern)
+					board.filterThreads(pattern) // cambiar por API
 					activeMode = MODE_BOARD
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
@@ -208,7 +215,7 @@ func UIRoutine(uic chan int) {
 						confirmDelete = true
 					} else {
 						deleteTh := board.Threads[boardPanel.GetThreadSelectedIndex()]
-						if deleteTh.Author() == Username {
+						if deleteTh.Author == Username {
 							setWarningMessage("Borrado")
 							confirmDelete = false
 							board.delThread(deleteTh)
@@ -228,9 +235,12 @@ func UIRoutine(uic chan int) {
 						if deleteMsg.Author == Username {
 							setWarningMessage("Borrado")
 							confirmDelete = false
-							thread.delMessage(deleteMsg)
+							thread.delMessage(deleteMsg) // cambiar por API
 							activeMode = MODE_BOARD
-							deleteMsg.Delete()
+							//err := deleteMsg.Delete()
+							if err != nil {
+								setWarningMessage(fmt.Sprintf("%s", err))
+							}
 						} else {
 							setWarningMessage("Solo el autor del mensaje puede borrarlo")
 						}
@@ -245,12 +255,12 @@ func UIRoutine(uic chan int) {
 
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'a' {
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					if thread.isClosed {
+					if thread.IsClosed {
 						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
 						content := ""
 						newMessage = NewMessage(Username, content)
-						thread.addMessage(newMessage)
+						//thread.addMessage(newMessage) // cambiar por API
 						exit = true // exit to run the editor
 					}
 
@@ -266,7 +276,7 @@ func UIRoutine(uic chan int) {
 						Edit message
 					*/
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					if thread.isClosed {
+					if thread.IsClosed {
 						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
 						newMessage = thread.Messages[threadPanel.MessageSelected]
@@ -290,20 +300,20 @@ func UIRoutine(uic chan int) {
 						Fix a thread
 					*/
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					thread.isFixed = !thread.isFixed
+					thread.IsFixed = !thread.IsFixed
 					sort.Sort(board)
-					thread.Update()
+					thread.Update() // cambiar por API
 
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' && isAdmin {
 					/*
 						Close thread
 					*/
 					thread := board.Threads[boardPanel.GetThreadSelectedIndex()]
-					if !thread.isClosed {
-						thread.isClosed = true
+					if !thread.IsClosed {
+						thread.IsClosed = true // cambiar por API
 						thread.Title = "[Cerrado]" + thread.Title
 					} else {
-						thread.isClosed = false
+						thread.IsClosed = false
 						thread.Title = strings.TrimPrefix(thread.Title, "[Cerrado]")
 					}
 					thread.Update()
@@ -324,28 +334,39 @@ func UIRoutine(uic chan int) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-
-	user, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	Username = user.Username
-	isAdmin = (os.Getuid() == 0)
-
 	board = CreateBoard()
-	err = board.Load()
-	if err != nil {
-		fmt.Println("Error: Database not found. You must execute initdb to create the database file")
-		os.Exit(-1)
-	}
 
-	//board = createMockBoard()
+	if len(os.Args) > 1 && os.Args[1] == "--server" {
+		//Run server mode:
 
-	uiChannel = make(chan int)
-	for {
-		go UIRoutine(uiChannel)
-		<-uiChannel
-		go editorRoutine(uiChannel)
-		<-uiChannel
+		fmt.Println("GBB Loading database ...")
+		err := board.Load()
+		if err != nil {
+			fmt.Println("Error: Database not found. You must execute initdb to create the database file")
+			os.Exit(-1)
+		}
+		fmt.Println("GBB Server running ...")
+		ServerInit()
+
+	} else {
+		//Run in client mode:
+
+		user, err := user.Current()
+		if err != nil {
+			panic(err)
+		}
+		Username = user.Username
+		isAdmin = (os.Getuid() == 0)
+
+		board = FetchBoard()
+
+		// Run de User Interface
+		uiChannel = make(chan int)
+		for {
+			go UIRoutine(uiChannel)
+			<-uiChannel
+			go editorRoutine(uiChannel)
+			<-uiChannel
+		}
 	}
 }

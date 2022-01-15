@@ -16,11 +16,11 @@ var DATE_FORMAT = "02 Jan-06"
 */
 
 type Message struct {
-	Id     int
-	Parent *Thread
-	Author string
-	Stamp  time.Time
-	Text   string
+	Id     int       `json:"id"`
+	Parent *Thread   `json:"-"`
+	Author string    `json:"author"`
+	Stamp  time.Time `json:"stamp"`
+	Text   string    `json:"text"`
 }
 
 func NewMessage(author string, text string) *Message {
@@ -86,7 +86,6 @@ func (m *Message) SetDate(datestr string) {
 	if err == nil {
 		m.Stamp = t
 	}
-
 }
 
 // Inserta un mensaje nuevo o actualiza un mensaje ya guardado en la base de datos.
@@ -109,8 +108,8 @@ func (m *Message) Save(update bool) {
 }
 
 // Borra un mensaje de la base de datos
-func (m *Message) Delete() {
-	q := fmt.Sprintf("DELETE FROM messages WHERE thread='%s';", m.Parent.Id)
+func (m *Message) DeleteFromBD() {
+	q := fmt.Sprintf("DELETE FROM messages WHERE id='%d';", m.Id)
 	statement, err := db.Prepare(q)
 	if err == nil {
 		_, err = statement.Exec()
@@ -124,12 +123,16 @@ func (m *Message) Delete() {
 */
 
 type Thread struct {
-	Messages []*Message
-	Title    string
-	Id       string
-	isClosed bool
-	isFixed  bool
-	hide     bool
+	Messages    []*Message
+	Id          string    `json:"id"`
+	Len         int       `json:"len"`
+	Author      string    `json:"author"`
+	UpdateStamp time.Time `json:"ustamp"`
+	CreateStamp time.Time `json:"cstamp"`
+	Title       string    `json:"title"`
+	IsClosed    bool      `json:"isclosed"`
+	IsFixed     bool      `json:"isfixed"`
+	hide        bool
 }
 
 func NewThread(title string, first *Message) *Thread {
@@ -140,9 +143,10 @@ func NewThread(title string, first *Message) *Thread {
 	t.Messages = make([]*Message, 0)
 	t.Messages = append(t.Messages, first)
 	t.Title = title
+	t.Len = 0
 	t.Id = RandomString(32)
-	t.isClosed = false
-	t.isFixed = false
+	t.IsClosed = false
+	t.IsFixed = false
 	t.hide = false
 	return t
 }
@@ -150,14 +154,14 @@ func NewThread(title string, first *Message) *Thread {
 // Inserta un hilo nuevo en la base de datos.
 func (t *Thread) Save() {
 	closed := 0
-	if t.isClosed {
+	if t.IsClosed {
 		closed = 1
 	}
 	fixed := 0
-	if t.isFixed {
+	if t.IsFixed {
 		fixed = 1
 	}
-	q := fmt.Sprintf("INSERT INTO threads (id,title,isClosed,isFixed) VALUES ('%s','%s','%d','%d');\n", t.Id, t.Title, closed, fixed)
+	q := fmt.Sprintf("INSERT INTO threads (id,title,IsClosed,IsFixed) VALUES ('%s','%s','%d','%d');\n", t.Id, t.Title, closed, fixed)
 	statement, err := db.Prepare(q)
 	if err == nil {
 		_, err = statement.Exec()
@@ -167,15 +171,15 @@ func (t *Thread) Save() {
 // Actualiza un hilo de la base de datos. Solo pueden ser actualizados los campos de fixed o closed.
 func (t *Thread) Update() {
 	closed := 0
-	if t.isClosed {
+	if t.IsClosed {
 		closed = 1
 	}
 	fixed := 0
-	if t.isFixed {
+	if t.IsFixed {
 		fixed = 1
 	}
 
-	q := fmt.Sprintf("UPDATE threads SET isClosed='%d', isFixed='%d' WHERE id='%s';\n", closed, fixed, t.Id)
+	q := fmt.Sprintf("UPDATE threads SET IsClosed='%d', IsFixed='%d' WHERE id='%s';\n", closed, fixed, t.Id)
 	statement, err := db.Prepare(q)
 
 	if err == nil {
@@ -186,7 +190,7 @@ func (t *Thread) Update() {
 // Borra un hilo de la base de datos
 func (t *Thread) Delete() {
 	for _, m := range t.Messages {
-		m.Delete()
+		m.DeleteFromBD()
 	}
 	q := fmt.Sprintf("DELETE FROM threads WHERE id='%s';", t.Id)
 	statement, err := db.Prepare(q)
@@ -204,6 +208,10 @@ func (t *Thread) addMessage(m *Message) {
 		m.Parent = t
 		t.Messages = append(t.Messages, m)
 	}
+	t.Len = len(t.Messages)
+	t.UpdateStamp = t.GetUpdateStamp()
+	t.CreateStamp = t.GetCreateStamp()
+	t.Author = t.GetAuthor()
 }
 
 // Elimina un mensaje del hilo
@@ -223,10 +231,11 @@ func (t *Thread) delMessage(m *Message) {
 			t.Messages = t.Messages[:len(t.Messages)-1]
 		}
 	}
+	t.Len = len(t.Messages)
 }
 
 // Retorna la fecha de creación del hilo (la del primer mensaje)
-func (t *Thread) CreateStamp() time.Time {
+func (t *Thread) GetCreateStamp() time.Time {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return time.Time{}
 	}
@@ -234,7 +243,7 @@ func (t *Thread) CreateStamp() time.Time {
 }
 
 // Retorna la fecha de modificación del hilo (la del último mensaje)
-func (t *Thread) UpdateStamp() time.Time {
+func (t *Thread) GetUpdateStamp() time.Time {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return time.Time{}
 	}
@@ -246,7 +255,7 @@ func (t *Thread) UpdateStamp() time.Time {
 }
 
 // Retorna el autor del hilo (el del primer mensaje)
-func (t *Thread) Author() string {
+func (t *Thread) GetAuthor() string {
 	if (t.Messages == nil) || len(t.Messages) == 0 {
 		return ""
 	}
@@ -254,10 +263,10 @@ func (t *Thread) Author() string {
 }
 
 func (t *Thread) String() string {
-	if len(t.Messages) > 1 {
-		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Author(), len(t.Messages)-1, t.Title)
+	if (t.Len) > 1 {
+		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Len-1, t.Title)
 	} else {
-		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp().Format(DATE_FORMAT), t.Author(), t.Title)
+		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
 	}
 }
 
@@ -269,7 +278,7 @@ func (t *Thread) String() string {
 
 type Board struct {
 	Threads []*Thread
-	Filter  []string
+	Filter  []string `json:"-"`
 }
 
 func CreateBoard() *Board {
@@ -285,7 +294,7 @@ func (b *Board) Load() error {
 
 	// Recuperamos los threads
 	q := `SELECT
-            id, title, isClosed, isFixed
+            id, title, IsClosed, IsFixed
             FROM threads`
 
 	rows, err := db.Query(q)
@@ -303,8 +312,8 @@ func (b *Board) Load() error {
 			&closedVal,
 			&fixedVal,
 		)
-		th.isClosed = (closedVal == 1)
-		th.isFixed = (fixedVal == 1)
+		th.IsClosed = (closedVal == 1)
+		th.IsFixed = (fixedVal == 1)
 		th.hide = false
 		b.Threads = append(b.Threads, &th)
 	}
@@ -343,10 +352,10 @@ func (b *Board) Load() error {
 func (b *Board) Len() int      { return len(b.Threads) }
 func (b *Board) Swap(i, j int) { b.Threads[i], b.Threads[j] = b.Threads[j], b.Threads[i] }
 func (b *Board) Less(i, j int) bool {
-	if b.Threads[i].isFixed == b.Threads[j].isFixed {
-		return b.Threads[i].UpdateStamp().After(b.Threads[j].UpdateStamp())
+	if b.Threads[i].IsFixed == b.Threads[j].IsFixed {
+		return b.Threads[i].UpdateStamp.After(b.Threads[j].UpdateStamp)
 	} else {
-		if b.Threads[i].isFixed {
+		if b.Threads[i].IsFixed {
 			return true
 		} else {
 			return false
@@ -358,6 +367,17 @@ func (b *Board) getThread(key string) *Thread {
 	for _, th := range b.Threads {
 		if th.Id == key {
 			return th
+		}
+	}
+	return nil
+}
+
+func (b *Board) getMessage(id int) *Message {
+	for _, th := range b.Threads {
+		for _, m := range th.Messages {
+			if m.Id == id {
+				return m
+			}
 		}
 	}
 	return nil
