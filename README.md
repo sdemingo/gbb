@@ -21,6 +21,14 @@ All the help messages are in spanish but if you want to use `gbb` in your server
 
 ![](gbb-snapshot.png)
 
+## Status
+
+Work in progress. Not usable yet.
+
+- [X] User Interface
+- [ ] API REST server
+- [ ] Auth users
+
 
 ## Build
 

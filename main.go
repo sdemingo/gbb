@@ -41,7 +41,7 @@ const HELP_TEXT = `
 	Su código está disponible en: https://github.com/sdemingo/gbb
 `
 
-var APP_TITLE = "GBB v1.0"
+var APP_TITLE = "GBB v0.1"
 var DefaultStyle tcell.Style
 var Username string
 var isAdmin bool
