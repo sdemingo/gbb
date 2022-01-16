@@ -92,7 +92,6 @@ func (m *Message) SetDate(datestr string) {
 // El parámetro update decide esto. En el caso de ser actualizado, solo podemos
 // cambiar el contenido del mensaje
 func (m *Message) Save(update bool) {
-	// insert in DB
 	date := m.DateString()
 	q := ""
 	if update {
@@ -279,11 +278,13 @@ func (t *Thread) String() string {
 type Board struct {
 	Threads []*Thread
 	Filter  []string `json:"-"`
+	Users   []*User  `json:"-"`
 }
 
 func CreateBoard() *Board {
 	b := new(Board)
 	b.Threads = make([]*Thread, 0)
+	b.Users = make([]*User, 0)
 	b.Filter = make([]string, 0)
 	return b
 }
@@ -346,6 +347,35 @@ func (b *Board) Load() error {
 			th.addMessage(m)
 		}
 	}
+
+	// Recuperamos todos los usuarios
+	q = `SELECT
+			login, password, isAdmin, isBanned
+			FROM users`
+	rows, err = db.Query(q)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		login := ""
+		pass := make([]byte, 100)
+		isBanned := 0
+		isAdmin := 0
+		rows.Scan(
+			&login,
+			&pass,
+			&isAdmin,
+			&isBanned,
+		)
+
+		u := NewUser(login, pass)
+		u.IsAdmin = (isAdmin == 1)
+		u.IsBanned = (isBanned == 1)
+		b.AddUser(u)
+	}
+
 	return nil
 }
 
@@ -433,11 +463,60 @@ func (b *Board) ResetFilter() {
 	b.Filter = make([]string, 0)
 }
 
-/*
-// Show all threads. It should be used after a filter operation
-// to show all threads again
-func (b *Board) showAllThreads() {
-	for _, th := range b.Threads {
-		th.hide = false
+func (b *Board) AddUser(u *User) {
+	b.Users = append(b.Users, u)
+}
+
+func (b *Board) GetUser(login string) *User {
+	for _, u := range b.Users {
+		if u.Login == login {
+			return u
+		}
 	}
-}*/
+	return nil
+}
+
+/*
+
+	Usuarios
+
+*/
+
+type User struct {
+	Login    string `json:"login"`
+	Password []byte `json:"-"`
+	IsAdmin  bool   `json:"isadmin"`
+	IsBanned bool   `json:"isbanned"`
+}
+
+func NewUser(login string, pass []byte) *User {
+	u := new(User)
+	u.Login = login
+	u.Password = pass
+	u.IsAdmin = false
+	u.IsBanned = false
+	return u
+}
+
+// Save or update an user in the database
+func (u *User) Save(update bool) {
+	q := ""
+	isadmin := 0
+	if u.IsAdmin {
+		isadmin = 1
+	}
+	isbanned := 0
+	if u.IsBanned {
+		isbanned = 1
+	}
+	password := string(u.Password[:])
+	if update {
+		q = fmt.Sprintf("UPDATE users SET isAdmin='%d', isBanned='%d' WHERE login='%s';", isadmin, isbanned, u.Login)
+	} else {
+		q = fmt.Sprintf("INSERT INTO users (login,password,isAdmin,isBanned) VALUES ('%s','%s','0','0');", u.Login, password)
+	}
+	statement, err := db.Prepare(q)
+	if err == nil {
+		_, err = statement.Exec()
+	}
+}

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -137,6 +139,50 @@ func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(board)
 }
 
+// Crea un usuario
+func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	login := vars["Login"]
+	if u := board.GetUser(login); u != nil {
+		a.jsonerror(w, "User exists in the database", 404)
+		return
+	}
+	pass_s, err := io.ReadAll(r.Body)
+	if err != nil {
+		a.jsonerror(w, "Bad createUser payload", 404)
+		return
+	}
+	u := NewUser(login, pass_s)
+	u.Save(false)
+	board.AddUser(u)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode("OK")
+}
+
+// Verifica las credenciales de un usuario
+func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	login := vars["Login"]
+	var u *User
+	if u = board.GetUser(login); u == nil {
+		a.jsonerror(w, "User not exists in the database", 404)
+		return
+	}
+	pass_s, err := io.ReadAll(r.Body)
+	if err != nil {
+		a.jsonerror(w, "Bad createUser payload", 404)
+		return
+	}
+
+	if bytes.Compare(pass_s, u.Password) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode("OK")
+	} else {
+		a.jsonerror(w, "Bad password", 404)
+	}
+
+}
+
 // Genera respuesta de error
 func (a *api) jsonerror(w http.ResponseWriter, err interface{}, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -164,6 +210,10 @@ func NewServer() Server {
 	// messages:
 	r.HandleFunc("/messages/{MsgId:[0-9]+}", a.deleteMessage).Methods(http.MethodDelete)
 	r.HandleFunc("/messages/{MsgId:[0-9]+}", a.updateMessageInThread).Methods(http.MethodPut)
+
+	// users:
+	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
+	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/new", a.createUser).Methods(http.MethodPost)
 
 	a.router = r
 	return a
