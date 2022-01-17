@@ -1,4 +1,4 @@
-package main
+package srv
 
 import (
 	"fmt"
@@ -131,7 +131,7 @@ type Thread struct {
 	Title       string    `json:"title"`
 	IsClosed    bool      `json:"isclosed"`
 	IsFixed     bool      `json:"isfixed"`
-	hide        bool
+	Hide        bool
 }
 
 func NewThread(title string, first *Message) *Thread {
@@ -146,7 +146,7 @@ func NewThread(title string, first *Message) *Thread {
 	t.Id = RandomString(32)
 	t.IsClosed = false
 	t.IsFixed = false
-	t.hide = false
+	t.Hide = false
 	return t
 }
 
@@ -315,7 +315,7 @@ func (b *Board) Load() error {
 		)
 		th.IsClosed = (closedVal == 1)
 		th.IsFixed = (fixedVal == 1)
-		th.hide = false
+		th.Hide = false
 		b.Threads = append(b.Threads, &th)
 	}
 
@@ -441,11 +441,11 @@ func (b *Board) filterThreads(filter string) {
 	b.Filter = []string{filter}
 	//b.Filter := strings.Split(filter, " ,")
 	for i := range b.Threads {
-		b.Threads[i].hide = true
+		b.Threads[i].Hide = true
 		for _, m := range b.Threads[i].Messages {
 			for _, w := range b.Filter {
 				if strings.Index(m.Text, w) >= 0 {
-					b.Threads[i].hide = false
+					b.Threads[i].Hide = false
 				}
 			}
 		}
@@ -458,7 +458,7 @@ func (b *Board) IsBoardFiltered() bool {
 
 func (b *Board) ResetFilter() {
 	for i := range b.Threads {
-		b.Threads[i].hide = false
+		b.Threads[i].Hide = false
 	}
 	b.Filter = make([]string, 0)
 }

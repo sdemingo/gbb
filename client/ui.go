@@ -1,7 +1,8 @@
-package main
+package client
 
 import (
 	"fmt"
+	"gbb/srv"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -112,7 +113,7 @@ func HelpPanel(s tcell.Screen) {
 	helpPanel := NewPanel(s, 0, 1, w, h-1)
 	helpPanel.Draw()
 
-	lines := SplitStringInLines(HELP_TEXT, w)
+	lines := srv.SplitStringInLines(HELP_TEXT, w)
 	nline := 2
 	for i := range lines {
 		drawText(s, 2, nline, w-1, nline, DefaultStyle, lines[i])
@@ -141,13 +142,13 @@ type BoardPanel struct {
 	Panel             *Panel
 	CursorLine        int
 	FirstThreadShowed int
-	Board             *Board
+	Board             *srv.Board
 	MaxLine           int
 	MinLine           int
 	MaxCol            int
 }
 
-func CreateBoardPanel(scr tcell.Screen, board *Board) *BoardPanel {
+func CreateBoardPanel(scr tcell.Screen, board *srv.Board) *BoardPanel {
 	bp := new(BoardPanel)
 	bp.Board = board
 	/*w, h := scr.Size()
@@ -189,7 +190,7 @@ func (bp *BoardPanel) Draw() {
 		if line >= bp.MaxLine {
 			break
 		}
-		if bp.Board.Threads[i] != nil && !bp.Board.Threads[i].hide {
+		if bp.Board.Threads[i] != nil && !bp.Board.Threads[i].Hide {
 			text := fmt.Sprintf("%s", bp.Board.Threads[i])
 			isSelected := line == bp.CursorLine
 			isFixed := bp.Board.Threads[i].IsFixed
@@ -237,7 +238,7 @@ func (bp *BoardPanel) GetThreadSelectedIndex() int {
 
 type ThreadPanel struct {
 	Panel           *Panel
-	Thread          *Thread
+	Thread          *srv.Thread
 	MessageSelected int
 	Messages        []*MessagePanel
 	CursorLine      int
@@ -247,7 +248,7 @@ type ThreadPanel struct {
 	MaxCol          int
 }
 
-func CreateThreadPanel(scr tcell.Screen, thread *Thread) *ThreadPanel {
+func CreateThreadPanel(scr tcell.Screen, thread *srv.Thread) *ThreadPanel {
 	tp := new(ThreadPanel)
 	w, h := scr.Size()
 	tp.Thread = thread
@@ -347,7 +348,7 @@ func (tp *ThreadPanel) DownPage() {
 type MessagePanel struct {
 	Panel      *Panel
 	Parent     *ThreadPanel
-	Message    *Message
+	Message    *srv.Message
 	Lines      []string
 	Pages      []Page
 	ActivePage int
@@ -362,7 +363,7 @@ func (p Page) Len() int {
 	return p.to - p.from
 }
 
-func CreateMessagePanel(scr tcell.Screen, msg *Message, parent *ThreadPanel) *MessagePanel {
+func CreateMessagePanel(scr tcell.Screen, msg *srv.Message, parent *ThreadPanel) *MessagePanel {
 	mp := new(MessagePanel)
 	w, h := scr.Size()
 	mp.Panel = NewPanel(scr, 0, 1, w, h-1)
@@ -461,7 +462,7 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 	scr.Clear()
 	if activeMode == MODE_BOARD {
 		if resize {
-			boardPanel = CreateBoardPanel(scr, board)
+			boardPanel = CreateBoardPanel(scr, clientboard)
 		}
 		boardPanel.Draw()
 	} else if activeMode == MODE_THREAD {
@@ -477,7 +478,7 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 		HelpPanel(scr)
 	}
 
-	if board.IsBoardFiltered() {
+	if clientboard.IsBoardFiltered() {
 		ShowFilteredHeader(scr)
 	}
 
@@ -515,7 +516,7 @@ func SearchThreadPanel(scr tcell.Screen) {
 func InputMessageFromEditor(initialText string) (error, string) {
 	var body []byte
 
-	filename := "/tmp/" + RandomString(8)
+	filename := "/tmp/" + srv.RandomString(8)
 
 	// Write in the file the inital text
 	f, err := os.Create(filename)
@@ -610,6 +611,6 @@ func ShowFilteredHeader(scr tcell.Screen) {
 	for c := 1; c < w-1; c++ {
 		drawText(scr, c, 0, w, 0, DefaultStyle, " ")
 	}
-	drawText(scr, 1, 0, w, 0, DefaultStyle, fmt.Sprintf(" Búsqueda: %s", strings.Join(board.Filter, " ")))
+	drawText(scr, 1, 0, w, 0, DefaultStyle, fmt.Sprintf(" Búsqueda: %s", strings.Join(clientboard.Filter, " ")))
 	scr.HideCursor()
 }

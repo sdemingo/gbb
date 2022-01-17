@@ -1,18 +1,18 @@
-package main
+package srv
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
-
-const SERVER = "http://localhost:8080"
 
 type api struct {
 	router http.Handler
@@ -223,7 +223,36 @@ func (a *api) Router() http.Handler {
 	return a.router
 }
 
+const dbPathFile = "./gbb.db" // must be /var/gbb/gbb.db
+const SERVER = "http://localhost:8080"
+
+var board *Board
+var db *sql.DB
+
+func GetConnection() *sql.DB {
+	if db != nil {
+		return db
+	}
+	var err error
+	db, err = sql.Open("sqlite3", dbPathFile)
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
 func ServerInit() {
+
+	board = CreateBoard()
+
+	fmt.Println("GBB Loading database ...")
+	err := board.Load()
+	if err != nil {
+		fmt.Println("Error: Database not found. You must execute initdb to create the database file")
+		os.Exit(-1)
+	}
+	fmt.Println("GBB Server running ...")
+
 	s := NewServer()
 	log.Fatal(http.ListenAndServe(":8080", s.Router()))
 }
