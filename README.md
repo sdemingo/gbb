@@ -19,7 +19,7 @@ The keys to use it are:
 All the help messages are in spanish but if you want to use `gbb` in your server and you want change them, ask me.
 
 
-![](gbb-snapshot.png)
+![](utils/gbb-snapshot.png)
 
 ## Status
 
