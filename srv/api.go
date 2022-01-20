@@ -26,6 +26,7 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 		if m := board.getMessage(id); m != nil {
 			if th := m.Parent; th != nil {
 				m.DeleteFromBD()
+				th.delMessage(m)
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusAccepted)
@@ -76,6 +77,7 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		m.Parent = thread
 		m.Save(false)
+		m.Parent.addMessage(m)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(m)
 	} else {
@@ -103,6 +105,7 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 	thread := board.getThread(key)
 	if thread != nil {
 		thread.Delete()
+		board.delThread(thread)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(thread)
 	} else {

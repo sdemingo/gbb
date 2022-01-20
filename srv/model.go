@@ -115,6 +115,10 @@ func (m *Message) DeleteFromBD() {
 	}
 }
 
+func (m *Message) String() string {
+	return fmt.Sprintf("[%s][%s] %s ", m.Stamp.Format(DATE_FORMAT), m.Author, m.Text)
+}
+
 /*
 
 	Hilos

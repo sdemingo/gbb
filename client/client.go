@@ -7,13 +7,20 @@ import (
 	"gbb/srv"
 	"log"
 	"net/http"
-	"os"
 	"os/user"
 	"sort"
 	"strings"
 
 	"github.com/gdamore/tcell"
 )
+
+/*
+
+	Client Requests
+
+*/
+
+var client = &http.Client{}
 
 // Carga el tablón desde la API
 func FetchBoard() *srv.Board {
@@ -31,27 +38,68 @@ func FetchThread(key string) *srv.Thread {
 	r, err := http.Get(srv.SERVER + "/threads/" + key)
 	if err == nil {
 		err = json.NewDecoder(r.Body).Decode(th)
+		for i := range th.Messages {
+			th.Messages[i].Parent = th
+		}
 		return th
 	} else {
 		return nil
 	}
 }
 
+// Borra un hilo completo a través de la API
+func DeleteThread(th *srv.Thread) error {
+	//client := &http.Client{}
+	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, th.Id)
+	r, err := http.NewRequest("DELETE", url, nil)
+	_, err = client.Do(r)
+	return err
+}
+
 // Añade una respuesta a un hilo desde la API
 func UpdateThreadWithNewReply(m *srv.Message, key string) error {
+	//client := &http.Client{}
 	buf := new(bytes.Buffer)
 	err := json.NewEncoder(buf).Encode(m)
-	_, err = http.NewRequest("UPDATE", srv.SERVER+"/thread/"+key, buf)
+	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, key)
+	r, err := http.NewRequest("PUT", url, buf)
+	_, err = client.Do(r)
 	return err
 }
 
 // Borra un mensaje desde la Api
 func DeleteMessage(m *srv.Message, key string) error {
-	client := &http.Client{}
+	//client := &http.Client{}
 	url := fmt.Sprintf("%s/messages/%d", srv.SERVER, m.Id)
 	r, err := http.NewRequest("DELETE", url, nil)
 	_, err = client.Do(r)
 	return err
+}
+
+// Retorna true si el usuario existe
+func UserExists(login string) bool {
+
+	return false
+}
+
+// Retorna la info del usuario o nil si el usuario no existe
+func GetUser(login string, password string) *srv.User {
+
+	return nil
+}
+
+/*
+
+	Client Core
+
+*/
+
+func readPassword() string {
+	password := ""
+	fmt.Print("\033[8m") // Hide input
+	fmt.Scan(&password)
+	fmt.Println("\033[28m") // Show input
+	return strings.Trim(password, "\n")
 }
 
 const HELP_TEXT = `
@@ -98,6 +146,7 @@ const (
 )
 
 var clientboard *srv.Board
+var clientUser *srv.User
 var activeThread *srv.Thread
 
 var newMessage *srv.Message
@@ -105,16 +154,53 @@ var newMessageInitialText string = ""
 
 func ClientInit() {
 
-	clientboard = srv.CreateBoard()
-
 	user, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
 	Username = user.Username
-	isAdmin = (os.Getuid() == 0)
 
-	clientboard = FetchBoard()
+	/*
+
+		Auth process
+
+	*/
+	/*
+		if UserExists(Username) {
+			//si existe pedimos la contraseña y verificamos
+			fmt.Print("Contraseña: ")
+			password := readPassword()
+			clientUser = GetUser(Username, password)
+			if clientUser == nil {
+				fmt.Println("Error: Credenciales incorrectas")
+				return
+			}
+			//if err == nil {
+			//	fmt.Println("Password typed: " + string(password))
+			//}
+
+		} else {
+			// es su primera conexión y debe asignar una contraseña nueva
+			fmt.Println("Bienvenido a GBB. Debes asignar una contraseña nueva a tu usuario")
+			fmt.Println("Si pierdes u olvidas esta contraseña debes ponerte en contacto con el administrador")
+			fmt.Println("")
+			fmt.Print("Nueva contraseña: ")
+			p1 := readPassword()
+			fmt.Print("Nueva contraseña (repitela): ")
+			p2 := readPassword()
+			if p1 == p2 {
+				fmt.Println("Tu usuario ya ha sido creado con tu nueva contraseña")
+			} else {
+				fmt.Println("Error: Las contraseñas no conciden")
+			}
+		}
+	*/
+
+	/*
+
+		Text User Interface
+
+	*/
 
 	// Run de User Interface
 	uiChannel = make(chan int)
@@ -126,18 +212,30 @@ func ClientInit() {
 	}
 }
 
+/*
+
+
+
+	Client Routines
+
+
+
+
+*/
+
 func editorRoutine(c chan int) {
 	update := (len(newMessageInitialText) != 0)
 	err, content := InputMessageFromEditor(newMessageInitialText)
 	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
-		//newMessage.Save(update)
-		threadKey := clientboard.Threads[boardPanel.GetThreadSelectedIndex()].Id
-		if !update {
-			UpdateThreadWithNewReply(newMessage, threadKey)
-		} else {
-			//UpdateMessage(newMessage, threadKey)
+		thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
+		if thread != nil {
+			if !update {
+				UpdateThreadWithNewReply(newMessage, thread.Id)
+			} else {
+				//UpdateMessage(newMessage, threadKey)
+			}
 		}
 		newMessage = nil
 	}
@@ -146,6 +244,8 @@ func editorRoutine(c chan int) {
 
 func UIRoutine(uic chan int) {
 	exit := false
+
+	clientboard = FetchBoard()
 
 	DefaultStyle = tcell.StyleDefault.Foreground(tcell.ColorWhite).Background(tcell.Color236)
 
@@ -253,7 +353,7 @@ func UIRoutine(uic chan int) {
 
 			} else {
 				/*
-					Delete reply or new thread
+					Delete a full thread
 				*/
 				if activeMode == MODE_BOARD && ev.Rune() == 'd' {
 					if !confirmDelete {
@@ -261,16 +361,16 @@ func UIRoutine(uic chan int) {
 						confirmDelete = true
 					} else {
 						deleteTh := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
-						if deleteTh.Author == Username {
-							setWarningMessage("Borrado")
-							confirmDelete = false
-							//clientboard.delThread(deleteTh)
-							deleteTh.Delete()
-						} else {
-							setWarningMessage("Solo el autor del hilo puede borrarlo")
-						}
+						setWarningMessage("Borrado")
+						confirmDelete = false
+						DeleteThread(deleteTh)
+						clientboard = FetchBoard()
+						refreshPanels(s, true)
 					}
 
+					/*
+						Delete reply from a thread
+					*/
 				} else if activeMode == MODE_THREAD && ev.Rune() == 'd' {
 					if !confirmDelete {
 						setWarningMessage("¿Desea borrar la respuesta? Pulse 'd' para confirmar o ESC para cancelar")
@@ -278,17 +378,15 @@ func UIRoutine(uic chan int) {
 					} else {
 						thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 						deleteMsg := thread.Messages[threadPanel.MessageSelected]
-						if deleteMsg.Author == Username {
-							setWarningMessage("Borrado")
-							confirmDelete = false
-							//thread.delMessage(deleteMsg) // cambiar por API
-							activeMode = MODE_BOARD
-							//err := deleteMsg.Delete()
-							if err != nil {
-								setWarningMessage(fmt.Sprintf("%s", err))
-							}
+						setWarningMessage("Borrado")
+						confirmDelete = false
+						activeMode = MODE_BOARD
+						err := DeleteMessage(deleteMsg, thread.Id)
+						if err != nil {
+							setWarningMessage(fmt.Sprintf("%s", err))
 						} else {
-							setWarningMessage("Solo el autor del mensaje puede borrarlo")
+							clientboard = FetchBoard()
+							refreshPanels(s, true)
 						}
 					}
 
