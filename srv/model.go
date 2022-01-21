@@ -139,12 +139,11 @@ type Thread struct {
 }
 
 func NewThread(title string, first *Message) *Thread {
-	if first == nil {
-		return nil // a thread must have a non empty first message
-	}
 	t := new(Thread)
 	t.Messages = make([]*Message, 0)
-	t.Messages = append(t.Messages, first)
+	if first != nil {
+		t.Messages = append(t.Messages, first)
+	}
 	t.Title = title
 	t.Len = 0
 	t.Id = RandomString(32)

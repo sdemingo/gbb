@@ -69,12 +69,15 @@ func (a *api) updateMessageInThread(w http.ResponseWriter, r *http.Request) {
 
 // Añade un mensaje al servidor
 func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
+
+	log.Println(r.URL)
+
 	vars := mux.Vars(r)
 	key := vars["ThreadKey"]
 	thread := board.getThread(key)
 	m := NewMessage("", "")
 	err := json.NewDecoder(r.Body).Decode(m)
-	if err == nil {
+	if err == nil && thread != nil && m != nil {
 		m.Parent = thread
 		m.Save(false)
 		m.Parent.addMessage(m)
@@ -142,6 +145,18 @@ func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(board)
 }
 
+// Crea un nuevo thread (sin mensaje principal). El primer mensaje debe
+// legar a través de otra llamada que debería recibirse tra esta
+func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
+	var title string
+	json.NewDecoder(r.Body).Decode(&title)
+	th := NewThread(title, nil)
+	board.addThread(th)
+	th.Save()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(th)
+}
+
 // Crea un usuario
 func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -203,8 +218,11 @@ func NewServer() Server {
 
 	r := mux.NewRouter()
 
-	// threads:
+	// board:
 	r.HandleFunc("/board", a.fetchBoard).Methods(http.MethodGet)
+	r.HandleFunc("/board", a.addThreadToBoard).Methods(http.MethodPost)
+
+	// threads:
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.fetchThread).Methods(http.MethodGet)
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.addMessageToThread).Methods(http.MethodPut)
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}/{Close:[a-z]+}", a.operateWithThread).Methods(http.MethodPut)

@@ -1,5 +1,6 @@
 gbb.db
 mockdb
+*.log
 
 gbb
 MISNOTAS.md

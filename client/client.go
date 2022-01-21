@@ -7,6 +7,7 @@ import (
 	"gbb/srv"
 	"log"
 	"net/http"
+	"os"
 	"os/user"
 	"sort"
 	"strings"
@@ -47,9 +48,23 @@ func FetchThread(key string) *srv.Thread {
 	}
 }
 
+// Crea un nuevo hilo a través de la API. Envía el título del thread y retorna la
+// clave del thread creado
+func CreateThread(title string) (th *srv.Thread, err error) {
+	buf := new(bytes.Buffer)
+	err = json.NewEncoder(buf).Encode(title)
+
+	url := fmt.Sprintf("%s/board", srv.SERVER)
+	r, err := http.NewRequest("POST", url, buf)
+	resp, err := client.Do(r)
+
+	th = new(srv.Thread)
+	err = json.NewDecoder(resp.Body).Decode(th)
+	return th, err
+}
+
 // Borra un hilo completo a través de la API
 func DeleteThread(th *srv.Thread) error {
-	//client := &http.Client{}
 	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, th.Id)
 	r, err := http.NewRequest("DELETE", url, nil)
 	_, err = client.Do(r)
@@ -58,7 +73,6 @@ func DeleteThread(th *srv.Thread) error {
 
 // Añade una respuesta a un hilo desde la API
 func UpdateThreadWithNewReply(m *srv.Message, key string) error {
-	//client := &http.Client{}
 	buf := new(bytes.Buffer)
 	err := json.NewEncoder(buf).Encode(m)
 	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, key)
@@ -69,7 +83,6 @@ func UpdateThreadWithNewReply(m *srv.Message, key string) error {
 
 // Borra un mensaje desde la Api
 func DeleteMessage(m *srv.Message, key string) error {
-	//client := &http.Client{}
 	url := fmt.Sprintf("%s/messages/%d", srv.SERVER, m.Id)
 	r, err := http.NewRequest("DELETE", url, nil)
 	_, err = client.Do(r)
@@ -100,6 +113,17 @@ func readPassword() string {
 	fmt.Scan(&password)
 	fmt.Println("\033[28m") // Show input
 	return strings.Trim(password, "\n")
+}
+
+var logFile *os.File
+
+func InitLog() {
+	fileName := "client.log"
+	logFile, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
 }
 
 const HELP_TEXT = `
@@ -202,6 +226,9 @@ func ClientInit() {
 
 	*/
 
+	InitLog()
+	defer logFile.Close()
+
 	// Run de User Interface
 	uiChannel = make(chan int)
 	for {
@@ -229,10 +256,10 @@ func editorRoutine(c chan int) {
 	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
-		thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
-		if thread != nil {
+		//thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
+		if activeThread != nil {
 			if !update {
-				UpdateThreadWithNewReply(newMessage, thread.Id)
+				UpdateThreadWithNewReply(newMessage, activeThread.Id)
 			} else {
 				//UpdateMessage(newMessage, threadKey)
 			}
@@ -244,6 +271,8 @@ func editorRoutine(c chan int) {
 
 func UIRoutine(uic chan int) {
 	exit := false
+
+	log.Println("Inicio cliente")
 
 	clientboard = FetchBoard()
 
@@ -330,11 +359,9 @@ func UIRoutine(uic chan int) {
 					title := messageBuffer.Msg
 					content := ""
 					newMessage = srv.NewMessage(Username, content)
-					thread := srv.NewThread(title, newMessage)
-					//clientboard.addThread(thread) // cambiar por API
-					thread.Save()
-					newMessage.Parent = thread
-					exit = true // exit to run the editor
+					activeThread, _ = CreateThread(title)
+					exit = true // exit to run the editor and write the first message of the thread
+
 				} else if activeMode == MODE_SEARCH_THREAD {
 					//pattern := messageBuffer.Msg
 					//clientboard.filterThreads(pattern) // cambiar por API
@@ -404,7 +431,6 @@ func UIRoutine(uic chan int) {
 					} else {
 						content := ""
 						newMessage = srv.NewMessage(Username, content)
-						//thread.addMessage(newMessage) // cambiar por API
 						exit = true // exit to run the editor
 					}
 
