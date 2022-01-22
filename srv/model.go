@@ -444,11 +444,9 @@ func (b *Board) filterThreads(filter string) []*Thread {
 	patterns := []string{filter}
 	matched := make([]*Thread, 0)
 	for i := range b.Threads {
-		b.Threads[i].Hide = true
 		for _, m := range b.Threads[i].Messages {
 			for _, w := range patterns {
 				if strings.Index(m.Text, w) >= 0 {
-					//b.Threads[i].Hide = false
 					matched = append(matched, b.Threads[i])
 				}
 			}
@@ -456,17 +454,6 @@ func (b *Board) filterThreads(filter string) []*Thread {
 	}
 	return matched
 }
-
-/*func (b *Board) IsBoardFiltered() bool {
-	return len(b.Filter) != 0
-}
-
-func (b *Board) ResetFilter() {
-	for i := range b.Threads {
-		b.Threads[i].Hide = false
-	}
-	b.Filter = make([]string, 0)
-}*/
 
 func (b *Board) AddUser(u *User) {
 	b.Users = append(b.Users, u)

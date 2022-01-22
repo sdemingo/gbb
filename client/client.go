@@ -101,6 +101,9 @@ func resetFilter() {
 }
 
 func applyFilter(filteredThreads []*srv.Thread) {
+	for i := range clientboard.Threads {
+		clientboard.Threads[i].Hide = true
+	}
 	for _, f := range filteredThreads {
 		th := getThread(f.Id)
 		th.Hide = false
@@ -256,6 +259,7 @@ func UIRoutine(uic chan int) {
 			*/
 			if ev.Key() == tcell.KeyESC {
 				if activeMode == MODE_BOARD {
+					log.Println(filter)
 					if isBoardFiltered() {
 						resetFilter()
 					} else {
@@ -303,9 +307,12 @@ func UIRoutine(uic chan int) {
 					exit = true // exit to run the editor and write the first message of the thread
 
 				} else if activeMode == MODE_SEARCH_THREAD {
-					//pattern := messageBuffer.Msg
-					//clientboard.filterThreads(pattern) // cambiar por API
+					pattern := messageBuffer.Msg
+					filter = []string{pattern}
+					matches := FindThreads(pattern)
+					applyFilter(matches)
 					activeMode = MODE_BOARD
+					refreshPanels(s, true)
 				}
 			} else if ev.Key() == tcell.KeyPgUp {
 				if activeMode == MODE_THREAD {

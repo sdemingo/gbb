@@ -144,10 +144,9 @@ func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
 
 // Recupera los hilos que contengan el patrón que viaja en el payload
 func (a *api) filterBoard(w http.ResponseWriter, r *http.Request) {
-	var pattern string
-	json.NewDecoder(r.Body).Decode(&pattern)
+	vars := mux.Vars(r)
+	pattern := vars["Pattern"]
 	filteredThreads := board.filterThreads(pattern)
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(filteredThreads)
 }
@@ -227,8 +226,8 @@ func NewServer() Server {
 
 	// board:
 	r.HandleFunc("/board", a.fetchBoard).Methods(http.MethodGet)
-	r.HandleFunc("/board{Pattern:a-zA-Z0-9_]+}", a.filterBoard).Methods(http.MethodGet)
 	r.HandleFunc("/board", a.addThreadToBoard).Methods(http.MethodPost)
+	r.HandleFunc("/board/{Pattern:[a-zA-Z0-9_]+}", a.filterBoard).Methods(http.MethodGet)
 
 	// threads:
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.fetchThread).Methods(http.MethodGet)
