@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/user"
-	"sort"
 	"strings"
 
 	"github.com/gdamore/tcell"
@@ -199,15 +198,17 @@ func editorRoutine(c chan int) {
 	newMessageInitialText = ""
 	if err == nil {
 		newMessage.Text = content
-		//thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 		if activeThread != nil {
 			if !update {
-				UpdateThreadWithNewReply(newMessage, activeThread.Id)
+				err = UpdateThreadWithNewReply(newMessage, activeThread.Id)
 			} else {
-				//UpdateMessage(newMessage, threadKey)
+				err = UpdateContentMessage(newMessage)
 			}
 		}
 		newMessage = nil
+		if err != nil {
+			setWarningMessage("Error:" + fmt.Sprintf("%s", err))
+		}
 	}
 	c <- 1
 }
@@ -233,8 +234,6 @@ func UIRoutine(uic chan int) {
 
 	activeMode = MODE_BOARD
 	confirmDelete = false
-
-	sort.Sort(clientboard)
 
 	boardPanel = CreateBoardPanel(s, clientboard)
 	refreshPanels(s, true)
@@ -378,7 +377,7 @@ func UIRoutine(uic chan int) {
 					} else {
 						content := ""
 						newMessage = srv.NewMessage(Username, content)
-						exit = true // exit to run the editor
+						exit = true // exit to run the editor and write the first message of the thread
 					}
 
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'b' {
@@ -397,12 +396,8 @@ func UIRoutine(uic chan int) {
 						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
 						newMessage = thread.Messages[threadPanel.MessageSelected]
-						if newMessage.Author == Username {
-							newMessageInitialText = newMessage.Text
-							exit = true // exit to run the editor
-						} else {
-							setWarningMessage("Solo el autor del mensaje puede editarlo")
-						}
+						newMessageInitialText = newMessage.Text
+						exit = true // exit to run the editor and write the first message of the thread
 					}
 
 					/*
@@ -412,28 +407,32 @@ func UIRoutine(uic chan int) {
 					lastActiveMode = activeMode
 					activeMode = MODE_HELP
 
-				} else if activeMode == MODE_BOARD && ev.Rune() == 'f' && isAdmin {
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'f' {
 					/*
 						Fix a thread
 					*/
 					thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 					thread.IsFixed = !thread.IsFixed
-					sort.Sort(clientboard)
-					thread.Update() // cambiar por API
+					if thread.IsFixed {
+						UpdateThreadStatus(thread, "fixed")
+					} else {
+						UpdateThreadStatus(thread, "free")
+					}
+					clientboard = FetchBoard()
+					refreshPanels(s, true)
 
-				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' && isAdmin {
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' {
 					/*
 						Close thread
 					*/
 					thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
-					if !thread.IsClosed {
-						thread.IsClosed = true // cambiar por API
-						thread.Title = "[Cerrado]" + thread.Title
+					if thread.IsClosed {
+						UpdateThreadStatus(thread, "open")
 					} else {
-						thread.IsClosed = false
-						thread.Title = strings.TrimPrefix(thread.Title, "[Cerrado]")
+						UpdateThreadStatus(thread, "close")
 					}
-					thread.Update()
+					clientboard = FetchBoard()
+					refreshPanels(s, true)
 
 					/*
 						Writting in top buffer

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gbb/srv"
 	"net/http"
+	"sort"
 )
 
 /*
@@ -23,6 +24,7 @@ func FetchBoard() *srv.Board {
 	if err == nil {
 		err = json.NewDecoder(r.Body).Decode(b)
 	}
+	sort.Sort(b)
 	return b
 }
 
@@ -80,6 +82,25 @@ func UpdateThreadWithNewReply(m *srv.Message, key string) error {
 	buf := new(bytes.Buffer)
 	err := json.NewEncoder(buf).Encode(m)
 	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, key)
+	r, err := http.NewRequest("PUT", url, buf)
+	_, err = client.Do(r)
+	return err
+}
+
+// Actualiza el estado de un thread en base al cmd enviado. El valor de
+// cmd puede ser: open|close|fixed|free
+func UpdateThreadStatus(th *srv.Thread, cmd string) error {
+	url := fmt.Sprintf("%s/threads/%s/%s", srv.SERVER, th.Id, cmd)
+	r, err := http.NewRequest("PUT", url, nil)
+	_, err = client.Do(r)
+	return err
+}
+
+// Actualiza el contenido de un mensaje
+func UpdateContentMessage(m *srv.Message) error {
+	buf := new(bytes.Buffer)
+	err := json.NewEncoder(buf).Encode(m)
+	url := fmt.Sprintf("%s/messages/%d", srv.SERVER, m.Id)
 	r, err := http.NewRequest("PUT", url, buf)
 	_, err = client.Do(r)
 	return err

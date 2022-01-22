@@ -72,6 +72,10 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["ThreadKey"]
 	thread := board.getThread(key)
+	if thread.IsClosed {
+		a.jsonerror(w, "Error: Thread is closed", 404)
+		return
+	}
 	m := NewMessage("", "")
 	err := json.NewDecoder(r.Body).Decode(m)
 	if err == nil && thread != nil && m != nil {
@@ -118,7 +122,7 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	key := vars["ThreadKey"]
-	command := vars["Close"]
+	command := vars["Cmd"]
 	thread := board.getThread(key)
 	if thread != nil {
 		if command == "close" || command == "open" {
@@ -232,7 +236,7 @@ func NewServer() Server {
 	// threads:
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.fetchThread).Methods(http.MethodGet)
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.addMessageToThread).Methods(http.MethodPut)
-	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}/{Close:[a-z]+}", a.operateWithThread).Methods(http.MethodPut)
+	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}/{Cmd:[a-z]+}", a.operateWithThread).Methods(http.MethodPut)
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.deleteThread).Methods(http.MethodDelete)
 
 	// messages:

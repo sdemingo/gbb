@@ -265,6 +265,9 @@ func (t *Thread) GetAuthor() string {
 }
 
 func (t *Thread) String() string {
+	if t.IsClosed {
+		return fmt.Sprintf(" %s|%-10s !! %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
+	}
 	if (t.Len) > 1 {
 		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Len-1, t.Title)
 	} else {
