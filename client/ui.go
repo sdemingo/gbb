@@ -478,7 +478,7 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 		HelpPanel(scr)
 	}
 
-	if clientboard.IsBoardFiltered() {
+	if isBoardFiltered() {
 		ShowFilteredHeader(scr)
 	}
 
@@ -611,6 +611,6 @@ func ShowFilteredHeader(scr tcell.Screen) {
 	for c := 1; c < w-1; c++ {
 		drawText(scr, c, 0, w, 0, DefaultStyle, " ")
 	}
-	drawText(scr, 1, 0, w, 0, DefaultStyle, fmt.Sprintf(" Búsqueda: %s", strings.Join(clientboard.Filter, " ")))
+	drawText(scr, 1, 0, w, 0, DefaultStyle, fmt.Sprintf(" Búsqueda: %s", strings.Join(filter, " ")))
 	scr.HideCursor()
 }

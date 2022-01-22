@@ -280,15 +280,15 @@ func (t *Thread) String() string {
 
 type Board struct {
 	Threads []*Thread
-	Filter  []string `json:"-"`
-	Users   []*User  `json:"-"`
+	//Filter  []string `json:"-"`
+	Users []*User `json:"-"`
 }
 
 func CreateBoard() *Board {
 	b := new(Board)
 	b.Threads = make([]*Thread, 0)
 	b.Users = make([]*User, 0)
-	b.Filter = make([]string, 0)
+	//b.Filter = make([]string, 0)
 	return b
 }
 
@@ -438,24 +438,26 @@ func (b *Board) delThread(th *Thread) {
 	}
 }
 
-// Filter board's threads. Only show threads with messages
-// that have the words in their contents
-func (b *Board) filterThreads(filter string) {
-	b.Filter = []string{filter}
-	//b.Filter := strings.Split(filter, " ,")
+// Filter board's threads. Return an array of threads that
+// contain the pattern
+func (b *Board) filterThreads(filter string) []*Thread {
+	patterns := []string{filter}
+	matched := make([]*Thread, 0)
 	for i := range b.Threads {
 		b.Threads[i].Hide = true
 		for _, m := range b.Threads[i].Messages {
-			for _, w := range b.Filter {
+			for _, w := range patterns {
 				if strings.Index(m.Text, w) >= 0 {
-					b.Threads[i].Hide = false
+					//b.Threads[i].Hide = false
+					matched = append(matched, b.Threads[i])
 				}
 			}
 		}
 	}
+	return matched
 }
 
-func (b *Board) IsBoardFiltered() bool {
+/*func (b *Board) IsBoardFiltered() bool {
 	return len(b.Filter) != 0
 }
 
@@ -464,7 +466,7 @@ func (b *Board) ResetFilter() {
 		b.Threads[i].Hide = false
 	}
 	b.Filter = make([]string, 0)
-}
+}*/
 
 func (b *Board) AddUser(u *User) {
 	b.Users = append(b.Users, u)

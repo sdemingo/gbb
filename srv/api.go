@@ -69,9 +69,6 @@ func (a *api) updateMessageInThread(w http.ResponseWriter, r *http.Request) {
 
 // Añade un mensaje al servidor
 func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
-
-	log.Println(r.URL)
-
 	vars := mux.Vars(r)
 	key := vars["ThreadKey"]
 	thread := board.getThread(key)
@@ -143,6 +140,16 @@ func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
 func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(board)
+}
+
+// Recupera los hilos que contengan el patrón que viaja en el payload
+func (a *api) filterBoard(w http.ResponseWriter, r *http.Request) {
+	var pattern string
+	json.NewDecoder(r.Body).Decode(&pattern)
+	filteredThreads := board.filterThreads(pattern)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(filteredThreads)
 }
 
 // Crea un nuevo thread (sin mensaje principal). El primer mensaje debe
@@ -220,6 +227,7 @@ func NewServer() Server {
 
 	// board:
 	r.HandleFunc("/board", a.fetchBoard).Methods(http.MethodGet)
+	r.HandleFunc("/board{Pattern:a-zA-Z0-9_]+}", a.filterBoard).Methods(http.MethodGet)
 	r.HandleFunc("/board", a.addThreadToBoard).Methods(http.MethodPost)
 
 	// threads:
