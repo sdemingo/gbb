@@ -1,7 +1,6 @@
 package srv
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -196,14 +196,16 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 		a.jsonerror(w, "User not exists in the database", 404)
 		return
 	}
-	pass_s, err := io.ReadAll(r.Body)
+	pass_s := ""
+	err := json.NewDecoder(r.Body).Decode(&pass_s)
 	if err != nil {
 		a.jsonerror(w, "Bad createUser payload", 404)
 		return
 	}
 
-	if bytes.Compare(pass_s, u.Password) == 0 {
+	if strings.Compare(fmt.Sprintf("%s", pass_s), fmt.Sprintf("%s", u.Password)) == 0 {
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
 		json.NewEncoder(w).Encode("OK")
 	} else {
 		a.jsonerror(w, "Bad password", 404)

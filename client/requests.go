@@ -59,7 +59,6 @@ func FindThreads(pattern string) []*srv.Thread {
 func CreateThread(title string) (th *srv.Thread, err error) {
 	buf := new(bytes.Buffer)
 	err = json.NewEncoder(buf).Encode(title)
-
 	url := fmt.Sprintf("%s/board", srv.SERVER)
 	r, err := http.NewRequest("POST", url, buf)
 	resp, err := client.Do(r)
@@ -114,14 +113,28 @@ func DeleteMessage(m *srv.Message, key string) error {
 	return err
 }
 
-// Retorna true si el usuario existe
-func UserExists(login string) bool {
-
-	return false
+// Retorna la info del usuario o nil si el usuario no existe
+func FetchUser(login string) *srv.User {
+	user := new(srv.User)
+	r, err := http.Get(srv.SERVER + "/users/" + login)
+	if err == nil {
+		err = json.NewDecoder(r.Body).Decode(&user)
+		return user
+	}
+	return nil
 }
 
-// Retorna la info del usuario o nil si el usuario no existe
-func GetUser(login string, password string) *srv.User {
-
-	return nil
+// Envía la password y el login y recibe el token de sesión del usuario
+func AuthUser(login string, password string) string {
+	buf := new(bytes.Buffer)
+	err := json.NewEncoder(buf).Encode(password) // pasar el hash
+	url := fmt.Sprintf("%s/users/%s", srv.SERVER, login)
+	r, err := http.NewRequest("POST", url, buf)
+	resp, err := client.Do(r)
+	token := ""
+	if err == nil && resp.Status == "200 OK" {
+		err = json.NewDecoder(resp.Body).Decode(&token)
+		return token
+	}
+	return token
 }
