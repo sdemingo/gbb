@@ -134,54 +134,37 @@ func ClientInit() {
 	*/
 
 	u := FetchUser(Username)
-	if u != nil {
-		//si existe pedimos la contraseña y la enviamos al servidor
-		fmt.Print("Contraseña: ")
-		password := readPassword()
+	if u == nil {
+		fmt.Println("Error: El usuario no existe. Debe solicitar un nuevo usuario")
+		return
+	}
 
-		sum := sha256.Sum256([]byte(password))
-		token := AuthUser(Username, fmt.Sprintf("%x", sum))
+	fmt.Print("Contraseña: ")
+	password := readPassword()
+	sum := sha256.Sum256([]byte(password))
+	token := AuthUser(Username, fmt.Sprintf("%x", sum))
 
-		if len(token) == 0 {
-			fmt.Println("Error: Credenciales incorrectas")
-			return
-		} else {
-			log.Printf("Token de sesión: %s\n", token)
-		}
-
-	} /*else {
-		// es su primera conexión y debe asignar una contraseña nueva
-		fmt.Println("Bienvenido a GBB. Debes asignar una contraseña nueva a tu usuario")
-		fmt.Println("Si pierdes u olvidas esta contraseña debes ponerte en contacto con el administrador")
-		fmt.Println("")
-		fmt.Print("Nueva contraseña: ")
-		p1 := readPassword()
-		fmt.Print("Nueva contraseña (repítela): ")
-		p2 := readPassword()
-		if p1 == p2 {
-			fmt.Println("Tu usuario ya ha sido creado con tu nueva contraseña")
-		} else {
-			fmt.Println("Error: Las contraseñas no coinciden")
-		}
-	}*/
+	if len(token) == 0 {
+		fmt.Println("Error: Credenciales incorrectas")
+		return
+	}
+	SetSessionToken(token)
 
 	/*
 
 		Text User Interface
 
 	*/
-	/*
-		InitLog()
-		defer logFile.Close()
 
-		// Run de User Interface
-		uiChannel = make(chan int)
-		for {
-			go UIRoutine(uiChannel)
-			<-uiChannel
-			go editorRoutine(uiChannel)
-			<-uiChannel
-		}*/
+	InitLog()
+	defer logFile.Close()
+	uiChannel = make(chan int)
+	for {
+		go UIRoutine(uiChannel)
+		<-uiChannel
+		go editorRoutine(uiChannel)
+		<-uiChannel
+	}
 }
 
 /*

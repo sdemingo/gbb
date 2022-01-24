@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gbb/srv"
 	"net/http"
+	"net/http/cookiejar"
 	"sort"
 )
 
@@ -15,17 +16,37 @@ import (
 
 */
 
+const STATUS_OK = "200 OK"
+
 var client = &http.Client{}
+var tokenSession *http.Cookie
+
+func SetSessionToken(tokenValue string) {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		panic(err)
+	}
+	client.Jar = jar
+
+	tokenSession = &http.Cookie{
+		Name:  "token",
+		Value: tokenValue,
+	}
+}
 
 // Carga el tablón desde la API
 func FetchBoard() *srv.Board {
 	b := srv.CreateBoard()
-	r, err := http.Get(srv.SERVER + "/board")
-	if err == nil {
-		err = json.NewDecoder(r.Body).Decode(b)
+	url := fmt.Sprintf("%s/board", srv.SERVER)
+	req, err := http.NewRequest("GET", url, nil)
+	req.AddCookie(tokenSession)
+	resp, err := client.Do(req)
+	if err == nil && resp.Status == "200 OK" {
+		err = json.NewDecoder(resp.Body).Decode(b)
+		sort.Sort(b)
+		return b
 	}
-	sort.Sort(b)
-	return b
+	return nil
 }
 
 // Carga un thread desde la API

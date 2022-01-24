@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -142,8 +141,14 @@ func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
 
 // Recupera el tablón
 func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(board)
+	user := GetUserFromSession(r)
+	if user != nil {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(board)
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
+	}
 }
 
 // Recupera los hilos que contengan el patrón que viaja en el payload
@@ -167,26 +172,6 @@ func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(th)
 }
 
-// Crea un usuario
-func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	login := vars["Login"]
-	if u := board.GetUser(login); u != nil {
-		a.jsonerror(w, "User exists in the database", 404)
-		return
-	}
-	pass_s, err := io.ReadAll(r.Body)
-	if err != nil {
-		a.jsonerror(w, "Bad createUser payload", 404)
-		return
-	}
-	u := NewUser(login, pass_s)
-	u.Save(false)
-	board.AddUser(u)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode("OK")
-}
-
 // Verifica las credenciales de un usuario
 func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -204,9 +189,11 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.Compare(fmt.Sprintf("%s", pass_s), fmt.Sprintf("%s", u.Password)) == 0 {
+		// Auth OK. Create session and send response with token
+		s := CreateSession(login)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
-		json.NewEncoder(w).Encode("OK")
+		json.NewEncoder(w).Encode(s.Id)
 	} else {
 		a.jsonerror(w, "Bad password", 404)
 	}
@@ -247,7 +234,7 @@ func NewServer() Server {
 
 	// users:
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
-	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/new", a.createUser).Methods(http.MethodPost)
+	//r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/new", a.createUser).Methods(http.MethodPost)
 
 	a.router = r
 	return a
@@ -286,6 +273,8 @@ func ServerInit() {
 		os.Exit(-1)
 	}
 	fmt.Println("GBB Server running ...")
+
+	sessionCache = make(map[string]*Session)
 
 	s := NewServer()
 	log.Fatal(http.ListenAndServe(":8080", s.Router()))
