@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gbb/srv"
 	"net/http"
@@ -52,9 +53,12 @@ func FetchBoard() *srv.Board {
 // Carga un thread desde la API
 func FetchThread(key string) *srv.Thread {
 	th := srv.NewThread("", &srv.Message{})
-	r, err := http.Get(srv.SERVER + "/threads/" + key)
-	if err == nil {
-		err = json.NewDecoder(r.Body).Decode(th)
+	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, key)
+	req, err := http.NewRequest("GET", url, nil)
+	req.AddCookie(tokenSession)
+	resp, err := client.Do(req)
+	if err == nil && resp.Status == "200 OK" {
+		err = json.NewDecoder(resp.Body).Decode(th)
 		for i := range th.Messages {
 			th.Messages[i].Parent = th
 		}
@@ -93,7 +97,11 @@ func CreateThread(title string) (th *srv.Thread, err error) {
 func DeleteThread(th *srv.Thread) error {
 	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, th.Id)
 	r, err := http.NewRequest("DELETE", url, nil)
-	_, err = client.Do(r)
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if resp.Status != "200 OK" {
+		return errors.New("Borrado no autorizado")
+	}
 	return err
 }
 

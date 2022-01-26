@@ -280,8 +280,12 @@ func UIRoutine(uic chan int) {
 				if activeMode == MODE_BOARD {
 					activeThreadId := clientboard.Threads[boardPanel.GetThreadSelectedIndex()].Id
 					activeThread = FetchThread(activeThreadId)
-					lastActiveMode = activeMode
-					activeMode = MODE_THREAD
+					if activeThread == nil {
+						setWarningMessage("Error: Hilo no devuelto por el servidor")
+					} else {
+						lastActiveMode = activeMode
+						activeMode = MODE_THREAD
+					}
 					refreshPanels(s, true)
 
 				} else if activeMode == MODE_INPUT_THREAD {
@@ -299,6 +303,7 @@ func UIRoutine(uic chan int) {
 					activeMode = MODE_BOARD
 					refreshPanels(s, true)
 				}
+
 			} else if ev.Key() == tcell.KeyPgUp {
 				if activeMode == MODE_THREAD {
 					threadPanel.UpPage()
@@ -320,11 +325,15 @@ func UIRoutine(uic chan int) {
 						confirmDelete = true
 					} else {
 						deleteTh := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
-						setWarningMessage("Borrado")
+						err := DeleteThread(deleteTh)
+						if err != nil {
+							setWarningMessage(fmt.Sprintf("%s", err))
+						} else {
+							setWarningMessage("Borrado")
+							clientboard = FetchBoard()
+							refreshPanels(s, true)
+						}
 						confirmDelete = false
-						DeleteThread(deleteTh)
-						clientboard = FetchBoard()
-						refreshPanels(s, true)
 					}
 
 					/*

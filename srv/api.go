@@ -90,29 +90,43 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 
 // Recupera todo un hilo
 func (a *api) fetchThread(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["ThreadKey"]
-	thread := board.getThread(key)
-	if thread != nil {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(thread)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		key := vars["ThreadKey"]
+		thread := board.getThread(key)
+		if thread != nil {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(thread)
+		} else {
+			a.jsonerror(w, "Id de hilo desconocida", 404)
+		}
 	} else {
-		a.jsonerror(w, "Unknow thread key", 404)
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
 // Borra todo el hilo completo
 func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["ThreadKey"]
-	thread := board.getThread(key)
-	if thread != nil {
-		thread.Delete()
-		board.delThread(thread)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(thread)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		key := vars["ThreadKey"]
+		thread := board.getThread(key)
+		if thread.Author != user.Login {
+			a.jsonerror(w, "Operación no autorizada", 404)
+			return
+		}
+		if thread != nil {
+			thread.Delete()
+			board.delThread(thread)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(thread)
+		} else {
+			a.jsonerror(w, "Unknow thread key", 404)
+		}
 	} else {
-		a.jsonerror(w, "Unknow thread key", 404)
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
