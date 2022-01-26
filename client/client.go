@@ -292,8 +292,13 @@ func UIRoutine(uic chan int) {
 					title := messageBuffer.Msg
 					content := ""
 					newMessage = srv.NewMessage(Username, content)
-					activeThread, _ = CreateThread(title)
-					exit = true // exit to run the editor and write the first message of the thread
+					activeThread, err = CreateThread(title)
+					if err != nil {
+						activeMode = MODE_BOARD
+						setWarningMessage("Error: No se ha podido crear el thread")
+					} else {
+						exit = true // exit to run the editor and write the first message of the thread
+					}
 
 				} else if activeMode == MODE_SEARCH_THREAD {
 					pattern := messageBuffer.Msg
@@ -351,7 +356,7 @@ func UIRoutine(uic chan int) {
 						activeMode = MODE_BOARD
 						err := DeleteMessage(deleteMsg, thread.Id)
 						if err != nil {
-							setWarningMessage(fmt.Sprintf("%s", err))
+							setWarningMessage(fmt.Sprintf("Error: %s", err))
 						} else {
 							clientboard = FetchBoard()
 							refreshPanels(s, true)

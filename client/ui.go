@@ -465,17 +465,20 @@ func refreshPanels(scr tcell.Screen, resize bool) {
 			boardPanel = CreateBoardPanel(scr, clientboard)
 		}
 		boardPanel.Draw()
+		scr.HideCursor()
 	} else if activeMode == MODE_THREAD {
 		if resize {
 			threadPanel = CreateThreadPanel(scr, activeThread)
 		}
 		threadPanel.Draw()
+		scr.HideCursor()
 	} else if activeMode == MODE_INPUT_THREAD {
 		InputThreadPanel(scr)
 	} else if activeMode == MODE_SEARCH_THREAD {
 		SearchThreadPanel(scr)
 	} else if activeMode == MODE_HELP {
 		HelpPanel(scr)
+		scr.HideCursor()
 	}
 
 	if isBoardFiltered() {

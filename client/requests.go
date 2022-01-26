@@ -86,10 +86,12 @@ func CreateThread(title string) (th *srv.Thread, err error) {
 	err = json.NewEncoder(buf).Encode(title)
 	url := fmt.Sprintf("%s/board", srv.SERVER)
 	r, err := http.NewRequest("POST", url, buf)
+	r.AddCookie(tokenSession)
 	resp, err := client.Do(r)
-
-	th = new(srv.Thread)
-	err = json.NewDecoder(resp.Body).Decode(th)
+	if err == nil && resp.Status == "200 OK" {
+		th = new(srv.Thread)
+		err = json.NewDecoder(resp.Body).Decode(th)
+	}
 	return th, err
 }
 

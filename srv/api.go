@@ -177,13 +177,19 @@ func (a *api) filterBoard(w http.ResponseWriter, r *http.Request) {
 // Crea un nuevo thread (sin mensaje principal). El primer mensaje debe
 // legar a través de otra llamada que debería recibirse tra esta
 func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
-	var title string
-	json.NewDecoder(r.Body).Decode(&title)
-	th := NewThread(title, nil)
-	board.addThread(th)
-	th.Save()
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(th)
+	user := GetUserFromSession(r)
+	if user != nil {
+		var title string
+		json.NewDecoder(r.Body).Decode(&title)
+		th := NewThread(title, nil)
+		th.Author = user.Login
+		board.addThread(th)
+		th.Save()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(th)
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
+	}
 }
 
 // Verifica las credenciales de un usuario
