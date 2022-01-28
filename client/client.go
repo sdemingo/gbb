@@ -351,16 +351,16 @@ func UIRoutine(uic chan int) {
 					} else {
 						thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 						deleteMsg := thread.Messages[threadPanel.MessageSelected]
-						setWarningMessage("Borrado")
-						confirmDelete = false
-						activeMode = MODE_BOARD
 						err := DeleteMessage(deleteMsg, thread.Id)
 						if err != nil {
 							setWarningMessage(fmt.Sprintf("Error: %s", err))
 						} else {
+							setWarningMessage("Borrado")
 							clientboard = FetchBoard()
 							refreshPanels(s, true)
 						}
+						activeMode = MODE_BOARD
+						confirmDelete = false
 					}
 
 					/*
@@ -412,14 +412,18 @@ func UIRoutine(uic chan int) {
 						Fix a thread
 					*/
 					thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
-					thread.IsFixed = !thread.IsFixed
 					if thread.IsFixed {
-						UpdateThreadStatus(thread, "fixed")
+						err = UpdateThreadStatus(thread, "free")
 					} else {
-						UpdateThreadStatus(thread, "free")
+						err = UpdateThreadStatus(thread, "fixed")
 					}
-					clientboard = FetchBoard()
-					refreshPanels(s, true)
+					if err != nil {
+						setWarningMessage("Operación no permitida")
+					} else {
+						thread.IsFixed = !thread.IsFixed
+						clientboard = FetchBoard()
+						refreshPanels(s, true)
+					}
 
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'c' {
 					/*
@@ -427,12 +431,16 @@ func UIRoutine(uic chan int) {
 					*/
 					thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 					if thread.IsClosed {
-						UpdateThreadStatus(thread, "open")
+						err = UpdateThreadStatus(thread, "open")
 					} else {
-						UpdateThreadStatus(thread, "close")
+						err = UpdateThreadStatus(thread, "close")
 					}
-					clientboard = FetchBoard()
-					refreshPanels(s, true)
+					if err != nil {
+						setWarningMessage("Operación no permitida")
+					} else {
+						clientboard = FetchBoard()
+						refreshPanels(s, true)
+					}
 
 					/*
 						Writting in top buffer

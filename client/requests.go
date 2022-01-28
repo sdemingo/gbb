@@ -122,8 +122,12 @@ func UpdateThreadWithNewReply(m *srv.Message, key string) error {
 func UpdateThreadStatus(th *srv.Thread, cmd string) error {
 	url := fmt.Sprintf("%s/threads/%s/%s", srv.SERVER, th.Id, cmd)
 	r, err := http.NewRequest("PUT", url, nil)
-	_, err = client.Do(r)
-	return err
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if err == nil && resp.Status == "200 OK" {
+		return nil
+	}
+	return errors.New("Operación no permitida")
 }
 
 // Actualiza el contenido de un mensaje
@@ -140,8 +144,12 @@ func UpdateContentMessage(m *srv.Message) error {
 func DeleteMessage(m *srv.Message, key string) error {
 	url := fmt.Sprintf("%s/messages/%d", srv.SERVER, m.Id)
 	r, err := http.NewRequest("DELETE", url, nil)
-	_, err = client.Do(r)
-	return err
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if err == nil && resp.Status == "200 OK" {
+		return nil
+	}
+	return errors.New("Borrado no autorizado")
 }
 
 // Retorna la info del usuario o nil si el usuario no existe

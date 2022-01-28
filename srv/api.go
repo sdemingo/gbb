@@ -19,23 +19,28 @@ type api struct {
 
 // Borra un mensaje del servidor
 func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["MsgId"])
-	if err == nil {
-		if m := board.getMessage(id); m != nil {
-			if th := m.Parent; th != nil {
-				m.DeleteFromBD()
-				th.delMessage(m)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		id, err := strconv.Atoi(vars["MsgId"])
+		if err == nil {
+			if m := board.getMessage(id); (m != nil) && (m.Author == user.Login) {
+				if th := m.Parent; th != nil {
+					m.DeleteFromBD()
+					th.delMessage(m)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(200)
+				json.NewEncoder(w).Encode(m)
+				return
+			} else {
+				a.jsonerror(w, "Bad msg id or bad msg author", 404)
+				return
 			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusAccepted)
-			json.NewEncoder(w).Encode(m)
 		} else {
-			a.jsonerror(w, "Unknow msg id", 404)
+			a.jsonerror(w, "Bad msg id", 404)
 			return
 		}
-	} else {
-		a.jsonerror(w, "Bad msg id", 404)
 	}
 }
 
@@ -133,23 +138,26 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 // Cierra un hilo para evitar que tenga más respuestas. Si el parámetro close
 // es igual a 0 el hilo se abre. Si distinto de 0 quedará cerrado
 func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["ThreadKey"]
-	command := vars["Cmd"]
-	thread := board.getThread(key)
-	if thread != nil {
-		if command == "close" || command == "open" {
-			thread.IsClosed = (command == "close")
-		}
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		key := vars["ThreadKey"]
+		command := vars["Cmd"]
+		thread := board.getThread(key)
+		if thread != nil && user.IsAdmin {
+			if command == "close" || command == "open" {
+				thread.IsClosed = (command == "close")
+			}
 
-		if command == "fixed" || command == "free" {
-			thread.IsFixed = (command == "fixed")
+			if command == "fixed" || command == "free" {
+				thread.IsFixed = (command == "fixed")
+			}
+			thread.Update()
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(thread)
+		} else {
+			a.jsonerror(w, "Bad thread key or bad user", 404)
 		}
-		thread.Update()
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(thread)
-	} else {
-		a.jsonerror(w, "Unknow thread key", 404)
 	}
 }
 
