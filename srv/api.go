@@ -32,64 +32,72 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(200)
 				json.NewEncoder(w).Encode(m)
-				return
 			} else {
 				a.jsonerror(w, "Bad msg id or bad msg author", 404)
-				return
 			}
 		} else {
 			a.jsonerror(w, "Bad msg id", 404)
-			return
 		}
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
 // Actualiza el contenido de un mensaje en el servidor
 func (a *api) updateMessageInThread(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["MsgId"])
-	if err == nil {
-		if storedMsg := board.getMessage(id); storedMsg != nil {
-			auxMsg := NewMessage("", "")
-			err := json.NewDecoder(r.Body).Decode(auxMsg)
-			if err == nil {
-				storedMsg.Text = auxMsg.Text
-				storedMsg.Save(true)
-				storedMsg.Text = auxMsg.Text
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(storedMsg)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		id, err := strconv.Atoi(vars["MsgId"])
+		if err == nil {
+			if storedMsg := board.getMessage(id); storedMsg != nil && storedMsg.Author == user.Login {
+				auxMsg := NewMessage("", "")
+				err := json.NewDecoder(r.Body).Decode(auxMsg)
+				if err == nil {
+					storedMsg.Text = auxMsg.Text
+					storedMsg.Save(true)
+					storedMsg.Text = auxMsg.Text
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(storedMsg)
+				} else {
+					a.jsonerror(w, fmt.Sprintf("%s", err), 404)
+				}
 			} else {
-				a.jsonerror(w, fmt.Sprintf("%s", err), 404)
-				return
+				a.jsonerror(w, "Unknow msg id or bad author", 404)
 			}
 		} else {
-			a.jsonerror(w, "Unknow msg id", 404)
-			return
+			a.jsonerror(w, "Bad msg id", 404)
 		}
 	} else {
-		a.jsonerror(w, "Bad msg id", 404)
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
 // Añade un mensaje al servidor
 func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["ThreadKey"]
-	thread := board.getThread(key)
-	if thread.IsClosed {
-		a.jsonerror(w, "Error: Thread is closed", 404)
-		return
-	}
-	m := NewMessage("", "")
-	err := json.NewDecoder(r.Body).Decode(m)
-	if err == nil && thread != nil && m != nil {
-		m.Parent = thread
-		m.Save(false)
-		m.Parent.addMessage(m)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(m)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		key := vars["ThreadKey"]
+		thread := board.getThread(key)
+		if thread.IsClosed {
+			a.jsonerror(w, "Error: Thread is closed", 404)
+			return
+		}
+		m := NewMessage("", "")
+		err := json.NewDecoder(r.Body).Decode(m)
+		if err == nil && thread != nil && m != nil {
+			m.Parent = thread
+			m.Author = user.Login
+			m.Save(false)
+			m.Parent.addMessage(m)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(m)
+		} else {
+			a.jsonerror(w, "Bad request payload", 404)
+		}
 	} else {
-		a.jsonerror(w, "Bad request payload", 404)
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
@@ -158,6 +166,8 @@ func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
 		} else {
 			a.jsonerror(w, "Bad thread key or bad user", 404)
 		}
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
 }
 
@@ -175,11 +185,16 @@ func (a *api) fetchBoard(w http.ResponseWriter, r *http.Request) {
 
 // Recupera los hilos que contengan el patrón que viaja en el payload
 func (a *api) filterBoard(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	pattern := vars["Pattern"]
-	filteredThreads := board.filterThreads(pattern)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filteredThreads)
+	user := GetUserFromSession(r)
+	if user != nil {
+		vars := mux.Vars(r)
+		pattern := vars["Pattern"]
+		filteredThreads := board.filterThreads(pattern)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(filteredThreads)
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
+	}
 }
 
 // Crea un nuevo thread (sin mensaje principal). El primer mensaje debe
@@ -198,6 +213,20 @@ func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
+}
+
+// Retorna la info de un usuario
+func (a *api) getUser(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	login := vars["Login"]
+	var u *User
+	if u = board.GetUser(login); u == nil {
+		a.jsonerror(w, "User not exists in the database", 404)
+		return
+	}
+	w.WriteHeader(200)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(u)
 }
 
 // Verifica las credenciales de un usuario
@@ -225,7 +254,6 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.jsonerror(w, "Bad password", 404)
 	}
-
 }
 
 // Genera respuesta de error
@@ -262,6 +290,7 @@ func NewServer() Server {
 
 	// users:
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
+	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.getUser).Methods(http.MethodGet)
 	//r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/new", a.createUser).Methods(http.MethodPost)
 
 	a.router = r

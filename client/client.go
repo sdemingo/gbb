@@ -30,7 +30,7 @@ var logFile *os.File
 
 func InitLog() {
 	fileName := "client.log"
-	logFile, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -120,6 +120,8 @@ func getThread(key string) *srv.Thread {
 }
 
 func ClientInit() {
+	InitLog()
+	defer logFile.Close()
 
 	user, err := user.Current()
 	if err != nil {
@@ -133,8 +135,8 @@ func ClientInit() {
 
 	*/
 
-	u := FetchUser(Username)
-	if u == nil {
+	clientUser = FetchUser(Username)
+	if clientUser == nil {
 		fmt.Println("Error: El usuario no existe. Debe solicitar un nuevo usuario")
 		return
 	}
@@ -150,14 +152,14 @@ func ClientInit() {
 	}
 	SetSessionToken(token)
 
+	log.Printf("Login[%s] Token session:%s\n", clientUser.Login, token)
+
 	/*
 
 		Text User Interface
 
 	*/
 
-	InitLog()
-	defer logFile.Close()
 	uiChannel = make(chan int)
 	for {
 		go UIRoutine(uiChannel)
@@ -201,8 +203,6 @@ func editorRoutine(c chan int) {
 
 func UIRoutine(uic chan int) {
 	exit := false
-
-	log.Println("Inicio cliente")
 
 	clientboard = FetchBoard()
 
@@ -396,8 +396,13 @@ func UIRoutine(uic chan int) {
 						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
 						newMessage = thread.Messages[threadPanel.MessageSelected]
-						newMessageInitialText = newMessage.Text
-						exit = true // exit to run the editor and write the first message of the thread
+						log.Printf("--- %s --- %s \n", newMessage.Author, clientUser.Login)
+						if (newMessage.Author == clientUser.Login) || clientUser.IsAdmin {
+							newMessageInitialText = newMessage.Text
+							exit = true // exit to run the editor and write the first message of the thread
+						} else {
+							setWarningMessage("Solo el autor del mensaje puede actualizarlo")
+						}
 					}
 
 					/*

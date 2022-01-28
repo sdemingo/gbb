@@ -26,8 +26,9 @@ All the help messages are in spanish but if you want to use `gbb` in your server
 Work in progress. Not usable yet.
 
 - [X] User Interface
-- [ ] API REST server
-- [ ] Auth users
+- [X] API REST server
+- [X] Auth users
+- [ ] Scripts to manage the database
 
 
 ## Build

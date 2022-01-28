@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"gbb/srv"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"sort"
@@ -72,10 +73,16 @@ func FetchThread(key string) *srv.Thread {
 // lo contengan
 func FindThreads(pattern string) []*srv.Thread {
 	matches := make([]*srv.Thread, 0)
-	r, err := http.Get(srv.SERVER + "/board/" + pattern)
+	url := fmt.Sprintf("%s/board/%s", srv.SERVER, pattern)
+	r, err := http.NewRequest("GET", url, nil)
 	if err == nil {
-		err = json.NewDecoder(r.Body).Decode(&matches)
+		r.AddCookie(tokenSession)
+		resp, err := client.Do(r)
+		if err == nil {
+			err = json.NewDecoder(resp.Body).Decode(&matches)
+		}
 	}
+	log.Printf("Error in FindThreads: %s", err)
 	return matches
 }
 
@@ -113,8 +120,12 @@ func UpdateThreadWithNewReply(m *srv.Message, key string) error {
 	err := json.NewEncoder(buf).Encode(m)
 	url := fmt.Sprintf("%s/threads/%s", srv.SERVER, key)
 	r, err := http.NewRequest("PUT", url, buf)
-	_, err = client.Do(r)
-	return err
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if err == nil && resp.Status == "200 OK" {
+		return nil
+	}
+	return errors.New("Operación no permitida")
 }
 
 // Actualiza el estado de un thread en base al cmd enviado. El valor de
@@ -136,8 +147,12 @@ func UpdateContentMessage(m *srv.Message) error {
 	err := json.NewEncoder(buf).Encode(m)
 	url := fmt.Sprintf("%s/messages/%d", srv.SERVER, m.Id)
 	r, err := http.NewRequest("PUT", url, buf)
-	_, err = client.Do(r)
-	return err
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if err == nil && resp.Status == "200 OK" {
+		return nil
+	}
+	return errors.New("Operación no permitida")
 }
 
 // Borra un mensaje desde la Api
@@ -155,9 +170,11 @@ func DeleteMessage(m *srv.Message, key string) error {
 // Retorna la info del usuario o nil si el usuario no existe
 func FetchUser(login string) *srv.User {
 	user := new(srv.User)
-	r, err := http.Get(srv.SERVER + "/users/" + login)
+	url := fmt.Sprintf("%s/users/%s", srv.SERVER, login)
+	r, err := http.NewRequest("GET", url, nil)
+	resp, err := client.Do(r)
 	if err == nil {
-		err = json.NewDecoder(r.Body).Decode(&user)
+		err = json.NewDecoder(resp.Body).Decode(user)
 		return user
 	}
 	return nil
