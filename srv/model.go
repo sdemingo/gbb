@@ -65,9 +65,7 @@ func SplitStringInLines(text string, nchars int) []string {
 func (m *Message) SplitInLines(nchars int) []string {
 
 	msg := make([]string, 0)
-	msg = append(msg, fmt.Sprintf("De %s en %s", m.Author, m.DateString()))
 	msg = append(msg, " ")
-
 	body := SplitStringInLines(m.Text, nchars)
 	msg = append(msg, body...)
 

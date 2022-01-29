@@ -261,8 +261,8 @@ func CreateThreadPanel(scr tcell.Screen, thread *srv.Thread) *ThreadPanel {
 	tp.MaxCol = w - 2
 	tp.MessageSelected = 0
 
-	for _, m := range tp.Thread.Messages {
-		mp := CreateMessagePanel(scr, m, tp)
+	for i, m := range tp.Thread.Messages {
+		mp := CreateMessagePanel(scr, m, tp, i)
 		tp.Messages = append(tp.Messages, mp)
 	}
 
@@ -282,9 +282,9 @@ func (tp *ThreadPanel) Draw() {
 
 	line := tp.MinLine
 	for indexMp, mp := range tp.Messages {
-		if tp.MessageSelected > 0 {
+		/*if tp.MessageSelected > 0 {
 			drawText(tp.Panel.screen, 1, 0, 25, 1, DefaultStyle, fmt.Sprintf("Respuesta %d de %d", tp.MessageSelected, len(tp.Thread.Messages)-1))
-		}
+		}*/
 		if indexMp < tp.MessageSelected {
 			continue
 		}
@@ -363,16 +363,19 @@ func (p Page) Len() int {
 	return p.to - p.from
 }
 
-func CreateMessagePanel(scr tcell.Screen, msg *srv.Message, parent *ThreadPanel) *MessagePanel {
+func CreateMessagePanel(scr tcell.Screen, msg *srv.Message, parent *ThreadPanel, indexMessage int) *MessagePanel {
 	mp := new(MessagePanel)
 	w, h := scr.Size()
 	mp.Panel = NewPanel(scr, 0, 1, w, h-1)
 	mp.Parent = parent
 	mp.Message = msg
-	mp.Lines = msg.SplitInLines(w - 5)
 	mp.Pages = make([]Page, 0)
 	mp.ActivePage = 0
 	pageSize := parent.MaxLine - 2
+	mp.Lines = msg.SplitInLines(w - 5)
+	// add header of the message
+	header := fmt.Sprintf("#%d Por %s [%s]", indexMessage, msg.Author, msg.DateString())
+	mp.Lines = append([]string{header}, mp.Lines...)
 
 	// Creo array de páginas
 	from := 0

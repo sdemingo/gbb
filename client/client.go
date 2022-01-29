@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"regexp"
 	"strings"
 
 	"github.com/gdamore/tcell"
@@ -117,6 +118,17 @@ func getThread(key string) *srv.Thread {
 		}
 	}
 	return nil
+}
+
+func marksMatchesWord(thread *srv.Thread) {
+	if len(filter) == 0 {
+		return
+	}
+	word := filter[0]
+	re := regexp.MustCompile(`(?i)(\s\S.)*(` + regexp.QuoteMeta(word) + `)(\s\S.)*`)
+	for i := range thread.Messages {
+		thread.Messages[i].Text = re.ReplaceAllString(thread.Messages[i].Text, "$1[[$2]]$3")
+	}
 }
 
 func ClientInit() {
@@ -285,6 +297,10 @@ func UIRoutine(uic chan int) {
 					} else {
 						lastActiveMode = activeMode
 						activeMode = MODE_THREAD
+					}
+
+					if isBoardFiltered() {
+						marksMatchesWord(activeThread)
 					}
 					refreshPanels(s, true)
 

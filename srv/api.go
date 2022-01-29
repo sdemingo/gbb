@@ -24,7 +24,7 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id, err := strconv.Atoi(vars["MsgId"])
 		if err == nil {
-			if m := board.getMessage(id); (m != nil) && (m.Author == user.Login) {
+			if m := board.getMessage(id); (m != nil) && (m.Author == user.Login) || (user.IsAdmin) {
 				if th := m.Parent; th != nil {
 					m.DeleteFromBD()
 					th.delMessage(m)
@@ -126,7 +126,7 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		key := vars["ThreadKey"]
 		thread := board.getThread(key)
-		if thread.Author != user.Login {
+		if (thread.Author != user.Login) && (!user.IsAdmin) {
 			a.jsonerror(w, "Operación no autorizada", 404)
 			return
 		}
