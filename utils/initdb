@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Set filepath for the Database
-DBPATH="gbb.db"
+DBPATH="gbb.db"  # Must have absolute path to database
 
 rm $DBPATH
 sqlite3 $DBPATH "CREATE TABLE users (login VARCHAR(50) PRIMARY KEY, password TEXT, isAdmin INTEGER, isBanned INTEGER);" ".exit"
