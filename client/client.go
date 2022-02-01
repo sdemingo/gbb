@@ -45,6 +45,18 @@ func InitLog() {
 	log.SetOutput(logFile)
 }
 
+func logError(text string, source string) {
+	if source != "" {
+		log.Printf("Error in %s: %s\n", source, text)
+	} else {
+		log.Printf("Error: %s\n", text)
+	}
+}
+
+func logEvent(text string) {
+	log.Printf("%s\n", text)
+}
+
 func ClientInit() {
 	InitLog()
 	defer logFile.Close()

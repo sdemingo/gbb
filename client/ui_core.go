@@ -46,6 +46,7 @@ func editorRoutine(c chan int) {
 		newMessage = nil
 		if err != nil {
 			setWarningMessage("Error:" + fmt.Sprintf("%s", err))
+			logError(fmt.Sprintf("%s", err), "editorRoutine")
 		}
 	}
 	c <- 1
@@ -132,6 +133,7 @@ func UIRoutine(uic chan int) {
 					activeThread = FetchThread(activeThreadId)
 					if activeThread == nil {
 						setWarningMessage("Error: Hilo no devuelto por el servidor")
+						logError("activeThread is nil before FetchThread", "uiRoutine")
 					} else {
 						lastActiveMode = activeMode
 						activeMode = MODE_THREAD
@@ -150,6 +152,7 @@ func UIRoutine(uic chan int) {
 					if err != nil {
 						activeMode = MODE_BOARD
 						setWarningMessage("Error: No se ha podido crear el thread")
+						logError("activeThread is nil before CreateThread. "+err.Error(), "uiRoutine")
 					} else {
 						exit = true // exit to run the editor and write the first message of the thread
 					}
@@ -187,6 +190,7 @@ func UIRoutine(uic chan int) {
 						err := DeleteThread(deleteTh)
 						if err != nil {
 							setWarningMessage(fmt.Sprintf("%s", err))
+							logError("DeleteThread return an error. "+err.Error(), "uiRoutine")
 						} else {
 							setWarningMessage("Borrado")
 							clientboard = FetchBoard()
@@ -208,6 +212,7 @@ func UIRoutine(uic chan int) {
 						err := DeleteMessage(deleteMsg, thread.Id)
 						if err != nil {
 							setWarningMessage(fmt.Sprintf("Error: %s", err))
+							logError("DeleteMessage return an error. "+err.Error(), "uiRoutine")
 						} else {
 							setWarningMessage("Borrado")
 							clientboard = FetchBoard()
@@ -250,7 +255,6 @@ func UIRoutine(uic chan int) {
 						setWarningMessage("El hilo está cerrado y no admite cambios")
 					} else {
 						newMessage = thread.Messages[threadPanel.MessageSelected]
-						log.Printf("--- %s --- %s \n", newMessage.Author, clientUser.Login)
 						if (newMessage.Author == clientUser.Login) || clientUser.IsAdmin {
 							newMessageInitialText = newMessage.Text
 							exit = true // exit to run the editor and write the first message of the thread
