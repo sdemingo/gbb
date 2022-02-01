@@ -6,16 +6,113 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/gdamore/tcell"
 )
+
+const HELP_TEXT = `
+
+	Índice de teclas y comandos
+	===========================
+
+	a      -    Añade un hilo o un mensaje
+	d      -    Borrar un hilo o un mensaje
+	e      -    Editar un mensaje
+	b      -    Buscar hilos por palabras clave
+	↑↓     -    Navegar entre hilos o mensajes
+	AvPg   - 	Avanzar página de un mensaje
+	RePg   -    Retroceder página de un mensaje
+	ESC    -    Ir a la ventana anterior
+	?      -    Mostrar este mensaje de ayuda
+	f      -    Fijar un hilo en la cabecera. Solo para administradores
+	c      -    Cerrar un hilo para nuevas respuestas. Solo para administradores
+
+
+
+	Acerca de GBB
+	=============
+
+	GBB ha sido licenciado con GNU GENERAL PUBLIC LICENSE Version 3
+	Su código está disponible en: https://github.com/sdemingo/gbb
+`
 
 var boardPanel *BoardPanel
 var threadPanel *ThreadPanel
 var messageBuffer MessageBuffer
 var warningMessage string
 var helpMessage string
+
+var DefaultStyle tcell.Style
+
+var activeMode = 0
+var lastActiveMode = 0
+var uiChannel chan int
+var confirmDelete bool
+
+const (
+	MODE_SEARCH_THREAD = 4
+	MODE_HELP          = 3
+	MODE_INPUT_THREAD  = 2
+	MODE_THREAD        = 1
+	MODE_BOARD         = 0
+)
+
+var clientboard *srv.Board
+var clientUser *srv.User
+var activeThread *srv.Thread
+
+var newMessage *srv.Message
+var newMessageInitialText string = ""
+
+func getThread(key string) *srv.Thread {
+	for _, th := range clientboard.Threads {
+		if th.Id == key {
+			return th
+		}
+	}
+	return nil
+}
+
+/*
+
+	Filtering functions.
+
+*/
+var filter []string
+
+func isBoardFiltered() bool {
+	return len(filter) != 0
+}
+
+func resetFilter() {
+	for i := range clientboard.Threads {
+		clientboard.Threads[i].Hide = false
+	}
+	filter = make([]string, 0)
+}
+
+func applyFilter(filteredThreads []*srv.Thread) {
+	for i := range clientboard.Threads {
+		clientboard.Threads[i].Hide = true
+	}
+	for _, f := range filteredThreads {
+		th := getThread(f.Id)
+		th.Hide = false
+	}
+}
+
+func marksMatchesWord(thread *srv.Thread) {
+	if len(filter) == 0 {
+		return
+	}
+	word := filter[0]
+	re := regexp.MustCompile(`(?i)(\s\S.)*(` + regexp.QuoteMeta(word) + `)(\s\S.)*`)
+	for i := range thread.Messages {
+		thread.Messages[i].Text = re.ReplaceAllString(thread.Messages[i].Text, "$1[[$2]]$3")
+	}
+}
 
 /*
 
