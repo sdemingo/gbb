@@ -256,6 +256,20 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Recarga toda la tabla de usuarios
+func (a *api) reloadUsers(w http.ResponseWriter, r *http.Request) {
+	user := GetUserFromSession(r)
+	if user != nil && user.IsAdmin {
+		board.LoadUsers()
+		fmt.Println("Se carga tabla de usuarios")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(200)
+		json.NewEncoder(w).Encode("")
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
+	}
+}
+
 // Genera respuesta de error
 func (a *api) jsonerror(w http.ResponseWriter, err interface{}, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -277,6 +291,7 @@ func NewServer() Server {
 	r.HandleFunc("/board", a.fetchBoard).Methods(http.MethodGet)
 	r.HandleFunc("/board", a.addThreadToBoard).Methods(http.MethodPost)
 	r.HandleFunc("/board/{Pattern:[a-zA-Z0-9_]+}", a.filterBoard).Methods(http.MethodGet)
+	r.HandleFunc("/board/users/reload", a.reloadUsers).Methods(http.MethodGet)
 
 	// threads:
 	r.HandleFunc("/threads/{ThreadKey:[a-zA-Z0-9_]+}", a.fetchThread).Methods(http.MethodGet)
@@ -291,7 +306,6 @@ func NewServer() Server {
 	// users:
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.getUser).Methods(http.MethodGet)
-	//r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/new", a.createUser).Methods(http.MethodPost)
 
 	a.router = r
 	return a

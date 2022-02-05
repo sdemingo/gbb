@@ -194,3 +194,15 @@ func AuthUser(login string, password string) string {
 	}
 	return token
 }
+
+// Envía una peticion para que el servidor recarge la tabla de usuarios
+func ReloadUsers() error {
+	url := fmt.Sprintf("%s/board/users/reload", srv.SERVER)
+	r, err := http.NewRequest("GET", url, nil)
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	if err == nil && resp.Status == "200 OK" {
+		return nil
+	}
+	return errors.New("Recarga no autorizada")
+}

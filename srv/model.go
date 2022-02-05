@@ -293,7 +293,37 @@ func CreateBoard() *Board {
 	return b
 }
 
-// Carga el tablón de la base de datos
+// Carga de la base de datos solo la tabla de usuarios
+func (b *Board) LoadUsers() error {
+	q := `SELECT login, password, isAdmin, isBanned FROM users`
+	rows, err := db.Query(q)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		login := ""
+		pass := make([]byte, 100)
+		isBanned := 0
+		isAdmin := 0
+		rows.Scan(
+			&login,
+			&pass,
+			&isAdmin,
+			&isBanned,
+		)
+
+		u := NewUser(login, pass)
+		u.IsAdmin = (isAdmin == 1)
+		u.IsBanned = (isBanned == 1)
+		b.AddUser(u)
+	}
+
+	return nil
+}
+
+// Carga toda la base de datos
 func (b *Board) Load() error {
 	db := GetConnection()
 
@@ -352,35 +382,9 @@ func (b *Board) Load() error {
 		}
 	}
 
-	// Recuperamos todos los usuarios
-	q = `SELECT
-			login, password, isAdmin, isBanned
-			FROM users`
-	rows, err = db.Query(q)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
+	err = b.LoadUsers()
 
-	for rows.Next() {
-		login := ""
-		pass := make([]byte, 100)
-		isBanned := 0
-		isAdmin := 0
-		rows.Scan(
-			&login,
-			&pass,
-			&isAdmin,
-			&isBanned,
-		)
-
-		u := NewUser(login, pass)
-		u.IsAdmin = (isAdmin == 1)
-		u.IsBanned = (isBanned == 1)
-		b.AddUser(u)
-	}
-
-	return nil
+	return err
 }
 
 func (b *Board) Len() int      { return len(b.Threads) }

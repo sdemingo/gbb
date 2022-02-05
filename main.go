@@ -19,6 +19,10 @@ func main() {
 
 	} else {
 		//Run in client mode:
-		client.ClientInit()
+		if len(os.Args) > 1 {
+			client.ClientInit(os.Args[1])
+		} else {
+			client.ClientInit("")
+		}
 	}
 }

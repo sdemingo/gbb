@@ -57,7 +57,7 @@ func logEvent(text string) {
 	log.Printf("%s\n", text)
 }
 
-func ClientInit() {
+func ClientInit(cmd string) {
 	InitLog()
 	defer logFile.Close()
 
@@ -93,10 +93,20 @@ func ClientInit() {
 	log.Printf("Login[%s] Token session:%s\n", clientUser.Login, token)
 
 	/*
+		Reload operation request
+	*/
+	if cmd == "--reload" {
+		err := ReloadUsers()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	/*
 
 		Text User Interface
 
 	*/
-
-	runUI()
+	if cmd == "" {
+		runUI()
+	}
 }
