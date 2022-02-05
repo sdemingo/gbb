@@ -331,7 +331,8 @@ func ServerInit() {
 	}
 	fmt.Println("GBB Server running ...")
 
-	sessionCache = make(map[string]*Session)
+	//sessionCache = make(map[string]*Session)
+	InitSessionCache()
 
 	s := NewServer()
 	log.Fatal(http.ListenAndServe(":8080", s.Router()))
