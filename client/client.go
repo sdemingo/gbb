@@ -39,12 +39,16 @@ func readPassword() string {
 	return strings.Trim(password, "\n")
 }
 
-func InitLog() {
-	logFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		panic(err)
+func InitLog(enable bool) {
+	if enable {
+		logFile, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFile)
+	} else {
+		log.SetOutput(ioutil.Discard)
 	}
-	log.SetOutput(logFile)
 }
 
 func logError(text string, source string) {
@@ -70,7 +74,12 @@ func PrintMOTD() {
 }
 
 func ClientInit(cmd string) {
-	InitLog()
+
+	if cmd == "--debug" {
+		InitLog(true)
+	} else {
+		InitLog(false)
+	}
 	defer logFile.Close()
 
 	user, err := user.Current()
@@ -113,8 +122,11 @@ func ClientInit(cmd string) {
 		err := ReloadUsers()
 		if err != nil {
 			fmt.Println(err)
+		} else {
+			fmt.Println("Se envió la petición de recarga de usuarios")
 		}
 	}
+
 	/*
 
 		Text User Interface
