@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -10,6 +11,7 @@ import (
 )
 
 var APP_TITLE = "GBB v0.1"
+var MOTD_FILE = "stuff/motd"
 
 var logFile *os.File
 var logFileName = "/tmp/client.log"
@@ -57,6 +59,16 @@ func logEvent(text string) {
 	log.Printf("%s\n", text)
 }
 
+func PrintMOTD() {
+	content, err := ioutil.ReadFile(MOTD_FILE)
+	if err == nil {
+		text := string(content)
+		fmt.Println(text + "\n")
+	} else {
+		fmt.Println(err)
+	}
+}
+
 func ClientInit(cmd string) {
 	InitLog()
 	defer logFile.Close()
@@ -66,6 +78,8 @@ func ClientInit(cmd string) {
 		panic(err)
 	}
 	Username = user.Username
+
+	PrintMOTD()
 
 	/*
 
