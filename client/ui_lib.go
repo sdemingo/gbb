@@ -20,6 +20,7 @@ const HELP_TEXT = `
 	a      -    Añade un hilo o un mensaje
 	d      -    Borrar un hilo o un mensaje
 	e      -    Editar un mensaje
+	r      -    Recarga los mensajes
 	b      -    Buscar hilos por palabras clave
 	↑↓     -    Navegar entre hilos o mensajes
 	AvPg   - 	Avanzar página de un mensaje

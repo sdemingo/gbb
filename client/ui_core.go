@@ -223,6 +223,13 @@ func UIRoutine(uic chan int) {
 					}
 
 					/*
+						Update all the messages
+					*/
+				} else if activeMode == MODE_BOARD && ev.Rune() == 'r' {
+
+					clientboard = FetchBoard()
+
+					/*
 						New reply or new thread
 					*/
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'a' {
