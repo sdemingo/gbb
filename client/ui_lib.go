@@ -249,13 +249,6 @@ type BoardPanel struct {
 func CreateBoardPanel(scr tcell.Screen, board *srv.Board) *BoardPanel {
 	bp := new(BoardPanel)
 	bp.Board = board
-	/*w, h := scr.Size()
-	bp.Panel = NewPanel(scr, 0, 1, w, h-1)
-	bp.FirstThreadShowed = 0
-	bp.MaxLine = h - 1
-	bp.MinLine = 2
-	bp.MaxCol = w - 2
-	bp.CursorLine = bp.MinLine*/
 	bp.Init(scr)
 	return bp
 }
@@ -380,9 +373,6 @@ func (tp *ThreadPanel) Draw() {
 
 	line := tp.MinLine
 	for indexMp, mp := range tp.Messages {
-		/*if tp.MessageSelected > 0 {
-			drawText(tp.Panel.screen, 1, 0, 25, 1, DefaultStyle, fmt.Sprintf("Respuesta %d de %d", tp.MessageSelected, len(tp.Thread.Messages)-1))
-		}*/
 		if indexMp < tp.MessageSelected {
 			continue
 		}

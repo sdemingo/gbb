@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-var DATE_FORMAT = "02 Jan-06"
+var DATE_FORMAT = "02/01/06"
 
 /*
 
@@ -264,12 +264,12 @@ func (t *Thread) GetAuthor() string {
 
 func (t *Thread) String() string {
 	if t.IsClosed {
-		return fmt.Sprintf(" %s|%-10s !! %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
+		return fmt.Sprintf(" %s|%-20s !! %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
 	}
 	if (t.Len) > 1 {
-		return fmt.Sprintf(" %s|%-10s %-2d %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Len-1, t.Title)
+		return fmt.Sprintf(" %s|%-20s %-2d %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Len-1, t.Title)
 	} else {
-		return fmt.Sprintf(" %s|%-10s    %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
+		return fmt.Sprintf(" %s|%-20s    %s ", t.UpdateStamp.Format(DATE_FORMAT), t.Author, t.Title)
 	}
 }
 

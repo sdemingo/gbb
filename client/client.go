@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var APP_TITLE = "GBB v0.1"
+var APP_TITLE = "GBB v1.0"
 var MOTD_FILE = "stuff/motd"
 
 var logFile *os.File
