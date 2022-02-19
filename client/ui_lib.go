@@ -203,8 +203,12 @@ func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string
 
 func quit(s tcell.Screen) {
 	s.Fini()
-	fmt.Print("\033[H\033[2J") // clear screen in unix
+	clearScreenCmd()
 	os.Exit(0)
+}
+
+func clearScreenCmd() {
+	fmt.Print("\033[H\033[2J") // clear screen in unix
 }
 
 func HelpPanel(s tcell.Screen) {

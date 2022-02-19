@@ -9,7 +9,7 @@ import (
 )
 
 func runUI() {
-
+	clearScreenCmd()
 	uiChannel = make(chan int)
 	for {
 		go UIRoutine(uiChannel)
