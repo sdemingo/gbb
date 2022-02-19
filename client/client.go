@@ -32,9 +32,7 @@ that it will be useful, but WITHOUT ANY WARRANTY.
 
 var logFile *os.File
 var logFileName = "/tmp/client.log"
-
 var Username string
-var isAdmin bool
 
 /*
 
@@ -119,8 +117,6 @@ func ClientInit(cmd string) {
 		return
 	}
 	SetSessionToken(token)
-
-	log.Printf("Login[%s] Token session:%s\n", clientUser.Login, token)
 
 	/*
 		Reload operation request

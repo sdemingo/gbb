@@ -271,7 +271,7 @@ func (bp *BoardPanel) Draw() {
 	col += 10
 	drawText(bp.Panel.screen, col, 0, col+20, 1, DefaultStyle, fmt.Sprintf("%d hilos", len(bp.Board.Threads)))
 	col += 20
-	if isAdmin {
+	if clientUser.IsAdmin {
 		drawText(bp.Panel.screen, col, 0, col+20, 1, DefaultStyle, fmt.Sprintf("@%s [Admin]", Username))
 	} else {
 		drawText(bp.Panel.screen, col, 0, col+20, 1, DefaultStyle, fmt.Sprintf("@%s", Username))
