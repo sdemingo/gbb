@@ -11,7 +11,24 @@ import (
 )
 
 var APP_TITLE = "GBB v1.0"
-var MOTD_FILE = "stuff/motd"
+var MOTD = `
+
+   ,o888888o.    8 888888888o   8 888888888o   
+   8888      88.  8 8888     88. 8 8888     88. 
+,8 8888        8. 8 8888      88 8 8888      88 
+88 8888           8 8888     ,88 8 8888      88 
+88 8888           8 8888.   ,88' 8 8888.    88' 
+88 8888           8 8888888888   8 8888888888   
+88 8888   8888888 8 8888     88. 8 8888     88. 
+ 8 8888       .8' 8 8888      88 8 8888      88 
+   8888     ,88'  8 8888    ,88' 8 8888    ,88' 
+    8888888P'    8 888888888P   8 888888888P   
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation. This program is distributed in the hope 
+that it will be useful, but WITHOUT ANY WARRANTY.
+`
 
 var logFile *os.File
 var logFileName = "/tmp/client.log"
@@ -63,16 +80,6 @@ func logEvent(text string) {
 	log.Printf("%s\n", text)
 }
 
-func PrintMOTD() {
-	content, err := ioutil.ReadFile(MOTD_FILE)
-	if err == nil {
-		text := string(content)
-		fmt.Println(text + "\n")
-	} else {
-		fmt.Println(err)
-	}
-}
-
 func ClientInit(cmd string) {
 
 	if cmd == "--debug" {
@@ -88,7 +95,7 @@ func ClientInit(cmd string) {
 	}
 	Username = user.Username
 
-	PrintMOTD()
+	fmt.Println(MOTD)
 
 	/*
 

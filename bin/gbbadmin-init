@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]
+then
+    echo "You need type the path to store the database"
+    exit
+fi
+
+DBFILE="gbb.db"
+echo " Creating the GBB database in $1 ..."
+if [ -d $1 ]
+then
+    DBPATH="$1/$DBFILE"
+    rm $DBPATH 2> /dev/null
+    sqlite3 $DBPATH "CREATE TABLE users (login VARCHAR(50) PRIMARY KEY, password TEXT, isAdmin INTEGER, isBanned INTEGER);" ".exit"
+    sqlite3 $DBPATH "CREATE TABLE threads (id VARCHAR(32) PRIMARY KEY, title VARCHAR(64) NULL,  isClosed INTEGER, isFixed INTEGER);" ".exit"
+    sqlite3 $DBPATH "CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, thread VARCHAR(32), author VARCHAR(255) NOT NULL, stamp TEXT, content TEXT);" ".exit"
+else
+    echo "This path is not valid"
+fi
+
