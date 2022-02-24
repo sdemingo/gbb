@@ -315,7 +315,7 @@ func (a *api) Router() http.Handler {
 	return a.router
 }
 
-const dbPathFile = "./gbb.db" // must be /var/gbb/gbb.db
+const dbPathFile = "./data/gbb.db"
 const SERVER = "http://localhost:8080"
 
 var board *Board
