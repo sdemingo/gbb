@@ -5,10 +5,11 @@ import sys
 import hashlib
 import string
 import random
+import os
 from sqlite3 import Error
 
 
-dbpath="./gbb.db"
+dbpath="./data/gbb.db"
 
 def get_random_string(length):
     letters = string.ascii_lowercase
@@ -17,6 +18,9 @@ def get_random_string(length):
 
 
 if __name__=='__main__':
+
+    if os.geteuid() != 0:
+        exit("Please run as root")
 
     if (len(sys.argv)<2):
         print("         gbbadmin-newuser <login>")

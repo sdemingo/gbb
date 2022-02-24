@@ -1,6 +1,12 @@
 #!/bin/bash
 
-DBPATH="gbb.db"  # Must have absolute path to database
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+
+DBPATH="./data/gbb.db"  # Must have absolute path to database
 
 if [ $# -ne 2 ]
 then

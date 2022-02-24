@@ -1,13 +1,13 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]
-then
-    echo "You need type the path to store the database"
-    exit
+
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
 fi
 
-DBFILE="gbb.db"
-echo " Creating the GBB database in $1 ..."
+DBFILE="./data/gbb.db"
+echo " Creating the GBB database in $DBFILE ..."
 if [ -d $1 ]
 then
     DBPATH="$1/$DBFILE"
