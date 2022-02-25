@@ -183,7 +183,7 @@ func FetchUser(login string) *srv.User {
 // Envía la password y el login y recibe el token de sesión del usuario
 func AuthUser(login string, password string) string {
 	buf := new(bytes.Buffer)
-	err := json.NewEncoder(buf).Encode(password) // pasar el hash
+	err := json.NewEncoder(buf).Encode(password)
 	url := fmt.Sprintf("%s/users/%s", srv.SERVER, login)
 	r, err := http.NewRequest("POST", url, buf)
 	resp, err := client.Do(r)
@@ -193,6 +193,22 @@ func AuthUser(login string, password string) string {
 		return token
 	}
 	return token
+}
+
+// Envía la nueva password y recibe un usuario si todo ha ido bien
+func RenewPassword(login string, password string) *srv.User {
+	buf := new(bytes.Buffer)
+	err := json.NewEncoder(buf).Encode(password)
+	url := fmt.Sprintf("%s/users/%s/changePassword", srv.SERVER, login)
+	r, err := http.NewRequest("PUT", url, buf)
+	r.AddCookie(tokenSession)
+	resp, err := client.Do(r)
+	user := new(srv.User)
+	if err == nil && resp.Status == "200 OK" {
+		err = json.NewDecoder(resp.Body).Decode(user)
+		return user
+	}
+	return nil
 }
 
 // Envía una peticion para que el servidor recarge la tabla de usuarios

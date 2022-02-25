@@ -129,6 +129,25 @@ func ClientInit(cmd string, exDir string) {
 	SetSessionToken(token)
 
 	/*
+		Renew Password
+	*/
+
+	if cmd == "--password" {
+		fmt.Print("Nueva contraseña: ")
+		npassword1 := readPassword()
+		fmt.Print("Nueva contraseña (otra vez): ")
+		npassword2 := readPassword()
+		if npassword1 == npassword2 {
+			sum := sha256.Sum256([]byte(npassword1))
+			u := RenewPassword(Username, fmt.Sprintf("%x", sum))
+			if u == nil {
+				fmt.Println("La contraseña no fue cambiada. Fallo la petición.")
+			}
+		}
+		return
+	}
+
+	/*
 		Reload operation request
 	*/
 	if cmd == "--reload" {

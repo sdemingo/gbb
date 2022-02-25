@@ -260,9 +260,17 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
 	user := GetUserFromSession(r)
 	if user != nil {
-
+		newpass_s := ""
+		err := json.NewDecoder(r.Body).Decode(&newpass_s)
+		if err != nil {
+			a.jsonerror(w, "Bad createUser payload", 404)
+			return
+		}
+		user.Password = []byte(newpass_s)
+		user.Save(true)
+		fmt.Println("Contraseña actualizada para " + user.Login)
 		w.Header().Set("Content-Type", "application/json")
-		//json.NewEncoder(w).Encode(th)
+		json.NewEncoder(w).Encode(user)
 	} else {
 		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
 	}
@@ -318,7 +326,7 @@ func NewServer() Server {
 	// users:
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.getUser).Methods(http.MethodGet)
-	r.HandleFunc("/users/changePassword", a.changePassword).Methods(http.MethodPut)
+	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}/changePassword", a.changePassword).Methods(http.MethodPut)
 
 	a.router = r
 	return a
@@ -360,7 +368,6 @@ func ServerInit(dir string) {
 	}
 	fmt.Println("GBB Server running ...")
 
-	//sessionCache = make(map[string]*Session)
 	InitSessionCache()
 
 	s := NewServer()

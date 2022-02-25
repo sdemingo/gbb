@@ -508,7 +508,7 @@ func (u *User) Save(update bool) {
 	}
 	password := string(u.Password[:])
 	if update {
-		q = fmt.Sprintf("UPDATE users SET isAdmin='%d', isBanned='%d' WHERE login='%s';", isadmin, isbanned, u.Login)
+		q = fmt.Sprintf("UPDATE users SET password='%s',isAdmin='%d', isBanned='%d' WHERE login='%s';", password, isadmin, isbanned, u.Login)
 	} else {
 		q = fmt.Sprintf("INSERT INTO users (login,password,isAdmin,isBanned) VALUES ('%s','%s','0','0');", u.Login, password)
 	}
