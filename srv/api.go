@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -256,6 +257,17 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
+	user := GetUserFromSession(r)
+	if user != nil {
+
+		w.Header().Set("Content-Type", "application/json")
+		//json.NewEncoder(w).Encode(th)
+	} else {
+		a.jsonerror(w, "Usuario no autenticado. Token desconocido", 404)
+	}
+}
+
 // Recarga toda la tabla de usuarios
 func (a *api) reloadUsers(w http.ResponseWriter, r *http.Request) {
 	user := GetUserFromSession(r)
@@ -306,6 +318,7 @@ func NewServer() Server {
 	// users:
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.verifyUser).Methods(http.MethodPost)
 	r.HandleFunc("/users/{Login:[a-zA-Z0-9_]+}", a.getUser).Methods(http.MethodGet)
+	r.HandleFunc("/users/changePassword", a.changePassword).Methods(http.MethodPut)
 
 	a.router = r
 	return a
@@ -314,9 +327,6 @@ func NewServer() Server {
 func (a *api) Router() http.Handler {
 	return a.router
 }
-
-const dbPathFile = "./data/gbb.db"
-const SERVER = "http://localhost:8080"
 
 var board *Board
 var db *sql.DB
@@ -333,11 +343,16 @@ func GetConnection() *sql.DB {
 	return db
 }
 
-func ServerInit() {
+var dbPathFile = "../data/gbb.db"
 
+const SERVER = "http://localhost:8080"
+
+func ServerInit(dir string) {
+
+	dbPathFile = filepath.Join(dir, dbPathFile)
 	board = CreateBoard()
 
-	fmt.Println("GBB Loading database ...")
+	fmt.Println("GBB Loading database from " + dbPathFile + " ...")
 	err := board.Load()
 	if err != nil {
 		fmt.Println("Error: Database not found. You must execute initdb to create the database file")

@@ -7,11 +7,12 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strings"
 )
 
 var APP_TITLE = "GBB v1.0"
-var MOTD = `
+var WELCOME = `
 
    ,o888888o.    8 888888888o   8 888888888o   
    8888      88.  8 8888     88. 8 8888     88. 
@@ -31,7 +32,7 @@ that it will be useful, but WITHOUT ANY WARRANTY.
 `
 
 var logFile *os.File
-var logFileName = "/tmp/client.log"
+var logFileName = "~/gbb-debug.log"
 var Username string
 
 /*
@@ -52,6 +53,15 @@ func readPassword() string {
 	fmt.Scan(&password)
 	fmt.Println("\033[28m") // Show input
 	return strings.Trim(password, "\n")
+}
+
+func PrintWellcome(gbbdir string) {
+	path := filepath.Join(gbbdir, "../stuff/wellcome")
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		fmt.Println(WELCOME)
+	}
+	fmt.Println(string(content))
 }
 
 func InitLog(enable bool) {
@@ -78,7 +88,7 @@ func logEvent(text string) {
 	log.Printf("%s\n", text)
 }
 
-func ClientInit(cmd string) {
+func ClientInit(cmd string, exDir string) {
 
 	if cmd == "--debug" {
 		InitLog(true)
@@ -93,7 +103,7 @@ func ClientInit(cmd string) {
 	}
 	Username = user.Username
 
-	fmt.Println(MOTD)
+	PrintWellcome(exDir)
 
 	/*
 
