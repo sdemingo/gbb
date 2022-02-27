@@ -13,7 +13,7 @@ type Session struct {
 	Stamp time.Time
 }
 
-const SESSION_TIMEALIVE = 1.0 //minutes
+const SESSION_TIMEALIVE = 30.0 //minutes
 
 var sessionCache map[string]*Session
 var sessionMutex sync.Mutex
@@ -59,7 +59,7 @@ func sessionRoutine() {
 
 			if diff.Minutes() >= SESSION_TIMEALIVE {
 				delete(sessionCache, session.Id)
-				fmt.Printf("Sesión de %s eliminada por inactividad\n", session.User)
+				logEvent(fmt.Sprintf("Sesión de %s eliminada por inactividad\n", session.User))
 			}
 		}
 		sessionMutex.Unlock()

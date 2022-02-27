@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -268,7 +269,7 @@ func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
 		}
 		user.Password = []byte(newpass_s)
 		user.Save(true)
-		fmt.Println("Contraseña actualizada para " + user.Login)
+		logEvent("Contraseña actualizada para " + user.Login)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(user)
 	} else {
@@ -281,7 +282,7 @@ func (a *api) reloadUsers(w http.ResponseWriter, r *http.Request) {
 	user := GetUserFromSession(r)
 	if user != nil && user.IsAdmin {
 		board.LoadUsers()
-		fmt.Println("Se carga tabla de usuarios")
+		logEvent("Se carga tabla de usuarios")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode("")
@@ -351,25 +352,51 @@ func GetConnection() *sql.DB {
 	return db
 }
 
-var dbPathFile = "../data/gbb.db"
+const PORT = 8080
 
-const SERVER = "http://localhost:8080"
+var dbPathFile = "../data/gbb.db"
+var logFile *os.File
+var logFileName = "gbb.log"
+var logDirectory = "/var/log/gbb"
+var SERVER = "http://localhost:" + fmt.Sprintf("%d", PORT)
+
+func InitLog(enable bool) {
+	if enable {
+		err := os.MkdirAll(logDirectory, os.ModePerm)
+		if err != nil {
+			return
+		}
+		logFile, err := os.OpenFile(filepath.Join(logDirectory, logFileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFile)
+	} else {
+		log.SetOutput(ioutil.Discard)
+	}
+}
+
+func logEvent(text string) {
+	log.Printf("%s\n", text)
+}
 
 func ServerInit(dir string) {
 
 	dbPathFile = filepath.Join(dir, dbPathFile)
 	board = CreateBoard()
 
-	fmt.Println("GBB Loading database from " + dbPathFile + " ...")
+	InitLog(true)
+
+	logEvent("GBB Loading database from " + dbPathFile + " ...")
 	err := board.Load()
 	if err != nil {
-		fmt.Println("Error: Database not found. You must execute initdb to create the database file")
+		logEvent("Error: Database not found. You must execute initdb to create the database file")
 		os.Exit(-1)
 	}
-	fmt.Println("GBB Server running ...")
+	logEvent("GBB Server running ...")
 
 	InitSessionCache()
 
 	s := NewServer()
-	log.Fatal(http.ListenAndServe(":8080", s.Router()))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", PORT), s.Router()))
 }
