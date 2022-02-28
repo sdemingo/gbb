@@ -7,6 +7,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 DBFILE="./data/gbb.db"
+mkdir -p "./data"
 echo " Creating the GBB database in $DBFILE ..."
 if [ -d $1 ]
 then
