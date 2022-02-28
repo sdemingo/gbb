@@ -6,6 +6,7 @@ import hashlib
 import string
 import random
 import os
+import shutil
 from sqlite3 import Error
 
 
@@ -46,10 +47,11 @@ if __name__=='__main__':
     cur = conn.cursor()
     cur.execute(sql)
     conn.commit()
-    
+
     f = open("/home/"+login+"/gbb_password", "w")
     f.write(genpassword)
     f.close()
 
     os.chmod("/home/"+login+"/gbb_password",0o600)
+    shutil.chown("/home/"+login+"/gbb_password", login, login)
     
