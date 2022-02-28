@@ -371,7 +371,7 @@ func InitLog(enable bool) {
 		if err != nil {
 			return
 		}
-		logFile, err := os.OpenFile(filepath.Join(logDirectory, logFileName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		logFile, err := os.OpenFile(filepath.Join(logDirectory, logFileName), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0660)
 		if err != nil {
 			panic(err)
 		}
