@@ -30,6 +30,7 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 				if th := m.Parent; th != nil {
 					m.DeleteFromBD()
 					th.delMessage(m)
+					logEvent(fmt.Sprintf("%s ha borrado un mensaje del hilo %s", user.Login, th.Id))
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(200)
@@ -93,6 +94,7 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 			m.Author = user.Login
 			m.Save(false)
 			m.Parent.addMessage(m)
+			logEvent(fmt.Sprintf("%s ha añadido un mensaje al hilo %s", user.Login, thread.Id))
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(m)
 		} else {
@@ -135,6 +137,7 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 		if thread != nil {
 			thread.Delete()
 			board.delThread(thread)
+			logEvent(fmt.Sprintf("%s ha borrado el hilo %s", user.Login, thread.Id))
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(thread)
 		} else {
@@ -210,6 +213,7 @@ func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
 		th.Author = user.Login
 		board.addThread(th)
 		th.Save()
+		logEvent(fmt.Sprintf("%s ha añadido el hilo %s", user.Login, th.Id))
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(th)
 	} else {
@@ -251,6 +255,7 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 		// Auth OK. Create session and send response with token
 		s := CreateSession(login)
 		w.Header().Set("Content-Type", "application/json")
+		logEvent(fmt.Sprintf("%s ha iniciado sesión", login))
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode(s.Id)
 	} else {
@@ -269,7 +274,7 @@ func (a *api) changePassword(w http.ResponseWriter, r *http.Request) {
 		}
 		user.Password = []byte(newpass_s)
 		user.Save(true)
-		logEvent("Contraseña actualizada para " + user.Login)
+		logEvent(fmt.Sprintf("%s ha actualizado su contraseña", user.Login))
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(user)
 	} else {
@@ -282,7 +287,7 @@ func (a *api) reloadUsers(w http.ResponseWriter, r *http.Request) {
 	user := GetUserFromSession(r)
 	if user != nil && user.IsAdmin {
 		board.LoadUsers()
-		logEvent("Se carga tabla de usuarios")
+		logEvent("Se carga tabla de usuarios en el servidor")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		json.NewEncoder(w).Encode("")
