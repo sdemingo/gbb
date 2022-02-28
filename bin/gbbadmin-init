@@ -11,11 +11,10 @@ mkdir -p "./data"
 echo " Creating the GBB database in $DBFILE ..."
 if [ -d $1 ]
 then
-    DBPATH="$1/$DBFILE"
-    rm $DBPATH 2> /dev/null
-    sqlite3 $DBPATH "CREATE TABLE users (login VARCHAR(50) PRIMARY KEY, password TEXT, isAdmin INTEGER, isBanned INTEGER);" ".exit"
-    sqlite3 $DBPATH "CREATE TABLE threads (id VARCHAR(32) PRIMARY KEY, title VARCHAR(64) NULL,  isClosed INTEGER, isFixed INTEGER);" ".exit"
-    sqlite3 $DBPATH "CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, thread VARCHAR(32), author VARCHAR(255) NOT NULL, stamp TEXT, content TEXT);" ".exit"
+    rm $$DBFILE 2> /dev/null
+    sqlite3 $DBFILE "CREATE TABLE users (login VARCHAR(50) PRIMARY KEY, password TEXT, isAdmin INTEGER, isBanned INTEGER);" ".exit"
+    sqlite3 $DBFILE "CREATE TABLE threads (id VARCHAR(32) PRIMARY KEY, title VARCHAR(64) NULL,  isClosed INTEGER, isFixed INTEGER);" ".exit"
+    sqlite3 $DBFILE "CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, thread VARCHAR(32), author VARCHAR(255) NOT NULL, stamp TEXT, content TEXT);" ".exit"
 else
     echo "This path is not valid"
 fi
