@@ -49,7 +49,7 @@ if __name__=='__main__':
     conn.commit()
 
     f = open("/home/"+login+"/gbb_password", "w")
-    f.write(genpassword)
+    f.write(genpassword+"\n")
     f.close()
 
     os.chmod("/home/"+login+"/gbb_password",0o600)
