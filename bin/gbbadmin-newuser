@@ -34,6 +34,10 @@ if __name__=='__main__':
         sys.exit(1)
 
     login=sys.argv[1]
+    if (len(login) == 0):
+        print("         gbbadmin-newuser <login>")
+        sys.exit(1)
+
     genpassword=get_random_string(6)
     m = hashlib.sha256()
     m.update(genpassword.encode())
@@ -42,6 +46,10 @@ if __name__=='__main__':
     cur = conn.cursor()
     cur.execute(sql)
     conn.commit()
+    
+    f = open("/home/"+login+"/gbb_password", "w")
+    f.write(genpassword)
+    f.close()
 
-    print ("Password generate is: %s" % genpassword)
-    ## Escribir la pass en un archivo en el home del usuario
+    os.chmod("/home/"+login+"/gbb_password",0o600)
+    
