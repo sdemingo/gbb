@@ -59,7 +59,7 @@ func sessionRoutine() {
 
 			if diff.Minutes() >= SESSION_TIMEALIVE {
 				delete(sessionCache, session.Id)
-				logEvent(fmt.Sprintf("Sesión de %s eliminada por inactividad\n", session.User))
+				logEvent(fmt.Sprintf("Sesión de %s eliminada por inactividad", session.User))
 			}
 		}
 		sessionMutex.Unlock()
