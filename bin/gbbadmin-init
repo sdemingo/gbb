@@ -6,7 +6,13 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-DBFILE="./data/gbb.db"
+if [ -z "$GBBHOME" ]
+then
+  echo "GBBHOME variable is not defined"
+  exit
+fi
+
+DBFILE="$GBBHOME/data/gbb.db"
 mkdir -p "./data"
 echo " Creating the GBB database in $DBFILE ..."
 if [ -d $1 ]

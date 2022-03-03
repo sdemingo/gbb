@@ -10,7 +10,7 @@ import shutil
 from sqlite3 import Error
 
 
-dbpath="./data/gbb.db"
+dbpath="data/gbb.db"
 
 def get_random_string(length):
     letters = string.ascii_lowercase
@@ -22,6 +22,14 @@ if __name__=='__main__':
 
     if os.geteuid() != 0:
         exit("Please run as root")
+
+    
+    gbbhome=os.getenv("GBBHOME")
+    if gbbhome=="":
+        exit("GBBHOME is not defined")
+
+    dbpath=gbbhome+"/"+dbpath
+
 
     if (len(sys.argv)<2):
         print("         gbbadmin-newuser <login>")

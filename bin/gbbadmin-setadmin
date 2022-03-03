@@ -5,8 +5,14 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
+if [ -z "$GBBHOME" ]
+then
+  echo "GBBHOME variable is not defined"
+  exit
+fi
 
-DBPATH="./data/gbb.db"  # Must have absolute path to database
+
+DBPATH="$GBBHOME/data/gbb.db" 
 
 if [ $# -ne 2 ]
 then

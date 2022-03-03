@@ -11,7 +11,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func GetGBBBinDirectory() string {
+func GetInstallationDirectory() string {
+
+	dir := os.Getenv("GBBHOME")
+	if dir != "" {
+		return dir
+	}
+
 	ex, err := os.Executable()
 	if err != nil {
 		panic(err)
@@ -23,7 +29,7 @@ func GetGBBBinDirectory() string {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	exDir := GetGBBBinDirectory()
+	exDir := GetInstallationDirectory()
 
 	if len(os.Args) > 1 && os.Args[1] == "--server" {
 		//Run server mode:
