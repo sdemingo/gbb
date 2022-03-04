@@ -8,7 +8,8 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"strings"
+
+	"golang.org/x/term"
 )
 
 var APP_TITLE = "GBB v1.0"
@@ -48,11 +49,12 @@ var Username string
 */
 
 func readPassword() string {
-	password := ""
-	fmt.Print("\033[8m") // Hide input
-	fmt.Scan(&password)
-	fmt.Println("\033[28m") // Show input
-	return strings.Trim(password, "\n")
+	bp, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println("Error: no se pudo leer la contraseña del teclado")
+		return ""
+	}
+	return fmt.Sprintf("%s", bp)
 }
 
 func PrintWellcome(gbbdir string) {
@@ -123,7 +125,7 @@ func ClientInit(cmd string, exDir string) {
 	token := AuthUser(Username, fmt.Sprintf("%x", sum))
 
 	if len(token) == 0 {
-		fmt.Println("Error: Credenciales incorrectas")
+		fmt.Println("\nError: Credenciales incorrectas")
 		return
 	}
 	SetSessionToken(token)
