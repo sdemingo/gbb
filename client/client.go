@@ -54,6 +54,7 @@ func readPassword() string {
 		fmt.Println("Error: no se pudo leer la contraseña del teclado")
 		return ""
 	}
+	fmt.Println()
 	return fmt.Sprintf("%s", bp)
 }
 
@@ -125,7 +126,7 @@ func ClientInit(cmd string, exDir string) {
 	token := AuthUser(Username, fmt.Sprintf("%x", sum))
 
 	if len(token) == 0 {
-		fmt.Println("\nError: Credenciales incorrectas")
+		fmt.Println("Error: Credenciales incorrectas")
 		return
 	}
 	SetSessionToken(token)
