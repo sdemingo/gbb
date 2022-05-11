@@ -2,6 +2,7 @@ package srv
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 	"unicode"
@@ -46,6 +47,10 @@ func SplitStringInLines(text string, nchars int) []string {
 				nline := strings.TrimRightFunc(line, func(r rune) bool {
 					return !unicode.IsSpace(r) && !unicode.IsPunct(r)
 				})
+				if len(nline) <= len(line) {
+					// hubo un problema. No se encontraron espacios ni puntuación
+					break
+				}
 				i -= (len(line) - len(nline)) // retraso i la diferencia entre line y nline (longitud del sufijo quitado)
 				line = nline
 				lines = append(lines, line)
@@ -64,6 +69,7 @@ func SplitStringInLines(text string, nchars int) []string {
 // el contenido de un mensaje
 func (m *Message) SplitInLines(nchars int) []string {
 
+	log.Printf("nchars vale %d", nchars)
 	msg := make([]string, 0)
 	msg = append(msg, " ")
 	body := SplitStringInLines(m.Text, nchars)

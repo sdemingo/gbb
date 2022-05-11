@@ -12,7 +12,7 @@ import (
 	"golang.org/x/term"
 )
 
-var APP_TITLE = "GBB v1.0"
+var APP_TITLE = "GBB v1.1"
 var WELCOME = `
 
    ,o888888o.    8 888888888o   8 888888888o   
@@ -33,7 +33,7 @@ that it will be useful, but WITHOUT ANY WARRANTY.
 `
 
 var logFile *os.File
-var logFileName = "~/gbb-debug.log"
+var logFileName = "/tmp/gbb-debug.log"
 var Username string
 
 /*
@@ -167,7 +167,7 @@ func ClientInit(cmd string, exDir string) {
 		Text User Interface
 
 	*/
-	if cmd == "" {
+	if cmd == "" || cmd == "--debug" {
 		runUI()
 	}
 }
