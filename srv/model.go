@@ -44,10 +44,17 @@ func SplitStringInLines(text string, nchars int) []string {
 			line += text[i : i+1]
 			count++
 			if count == nchars {
+				if !strings.Contains(line, " ") && !strings.Contains(line, ",.;:()[]") {
+					break
+				}
 				nline := strings.TrimRightFunc(line, func(r rune) bool {
 					return !unicode.IsSpace(r) && !unicode.IsPunct(r)
+					/*
+						nline será un string desde el último caracter procesado hasta
+						el anterior espacio o signo de puntuación
+					*/
 				})
-				i -= (len(line) - len(nline)) // retraso i la diferencia entre line y nline (longitud del sufijo quitado)
+				i -= (len(line) - len(nline)) // retraso i la diferencia entre line y nline
 				line = nline
 				lines = append(lines, line)
 				line = ""
