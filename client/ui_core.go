@@ -209,6 +209,7 @@ func UIRoutine(uic chan int) {
 					} else {
 						thread := clientboard.Threads[boardPanel.GetThreadSelectedIndex()]
 						deleteMsg := thread.Messages[threadPanel.MessageSelected]
+						log.Println(deleteMsg.Id)
 						err := DeleteMessage(deleteMsg, thread.Id)
 						if err != nil {
 							setWarningMessage(fmt.Sprintf("Error: %s", err))
@@ -228,6 +229,7 @@ func UIRoutine(uic chan int) {
 				} else if activeMode == MODE_BOARD && ev.Rune() == 'r' {
 
 					clientboard = FetchBoard()
+					refreshPanels(s, true)
 
 					/*
 						New reply or new thread

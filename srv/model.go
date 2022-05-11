@@ -1,8 +1,8 @@
 package srv
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 	"unicode"
@@ -71,8 +71,6 @@ func SplitStringInLines(text string, nchars int) []string {
 // Función que utiliza a SplitStringInLines para separar en varías líneas
 // el contenido de un mensaje
 func (m *Message) SplitInLines(nchars int) []string {
-
-	log.Printf("nchars vale %d", nchars)
 	msg := make([]string, 0)
 	msg = append(msg, " ")
 	body := SplitStringInLines(m.Text, nchars)
@@ -98,7 +96,7 @@ func (m *Message) SetDate(datestr string) {
 // Inserta un mensaje nuevo o actualiza un mensaje ya guardado en la base de datos.
 // El parámetro update decide esto. En el caso de ser actualizado, solo podemos
 // cambiar el contenido del mensaje
-func (m *Message) Save(update bool) {
+func (m *Message) Save(update bool) error {
 	date := m.DateString()
 	q := ""
 	if update {
@@ -109,21 +107,33 @@ func (m *Message) Save(update bool) {
 	statement, err := db.Prepare(q)
 
 	if err == nil {
-		_, err = statement.Exec()
+		res, err := statement.Exec()
+		if err != nil {
+			return err
+		}
+		if !update {
+			id, err := res.LastInsertId()
+			if err != nil {
+				return err
+			}
+			m.Id = int(id)
+		}
 	}
+	return nil
 }
 
 // Borra un mensaje de la base de datos
-func (m *Message) DeleteFromBD() {
-	q := fmt.Sprintf("DELETE FROM messages WHERE id='%d';", m.Id)
+func (m *Message) DeleteFromBD() error {
+	q := fmt.Sprintf("DELETE FROM messages WHERE id=%d;", m.Id)
 	statement, err := db.Prepare(q)
 	if err == nil {
 		_, err = statement.Exec()
 	}
+	return err
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("[%s][%s] %s ", m.Stamp.Format(DATE_FORMAT), m.Author, m.Text)
+	return fmt.Sprintf("[%d][%s][%s] %s ", m.Id, m.Stamp.Format(DATE_FORMAT), m.Author, m.Text)
 }
 
 /*
@@ -224,15 +234,21 @@ func (t *Thread) addMessage(m *Message) {
 }
 
 // Elimina un mensaje del hilo
-func (t *Thread) delMessage(m *Message) {
+func (t *Thread) delMessage(m *Message) error {
 	i := 0
+	found := false
 	if m != nil {
 		for i = range t.Messages {
 			m2 := t.Messages[i]
-			if (m.Author == m2.Author) && (m.Stamp == m2.Stamp) && (i > 0) {
+			//if (m.Author == m2.Author) && (m.Stamp == m2.Stamp) && (i > 0) {
+			if (m.Id == m2.Id) && (i > 0) {
 				// El primer mensaje del hilo no se puede borrar, solo las respuestas
+				found = true
 				break
 			}
+		}
+		if !found {
+			return errors.New("El mensaje buscado no existe")
 		}
 		if i < len(t.Messages)-1 {
 			t.Messages = append(t.Messages[:i], t.Messages[i+1:]...)
@@ -241,6 +257,7 @@ func (t *Thread) delMessage(m *Message) {
 		}
 	}
 	t.Len = len(t.Messages)
+	return nil
 }
 
 // Retorna la fecha de creación del hilo (la del primer mensaje)

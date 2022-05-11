@@ -26,18 +26,37 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id, err := strconv.Atoi(vars["MsgId"])
 		if err == nil {
-			if m := board.getMessage(id); (m != nil) && (m.Author == user.Login) || (user.IsAdmin) {
-				if th := m.Parent; th != nil {
-					m.DeleteFromBD()
-					th.delMessage(m)
-					logEvent(fmt.Sprintf("%s ha borrado un mensaje del hilo %s", user.Login, th.Id))
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(200)
-				json.NewEncoder(w).Encode(m)
-			} else {
-				a.jsonerror(w, "Bad msg id or bad msg author", 404)
+			//if m := board.getMessage(id); (m != nil) && ((m.Author == user.Login) || (user.IsAdmin)) {
+			m := board.getMessage(id)
+			if m == nil {
+				a.jsonerror(w, "Bad msg id", 404)
+				return
 			}
+
+			logEvent(fmt.Sprintf("%s", m.String()))
+
+			if m.Author != user.Login && !user.IsAdmin {
+				a.jsonerror(w, "Bad msg id or bad msg author", 404)
+				return
+			}
+
+			if th := m.Parent; th != nil {
+				err = m.DeleteFromBD()
+				if err != nil {
+					logEvent(fmt.Sprintf("Falló el borrado del mensaje [%d] del hilo %s por %s: %s", m.Id, th.Id, user.Login, err))
+				}
+				err = th.delMessage(m)
+				if err != nil {
+					logEvent(fmt.Sprintf("Falló el borrado del mensaje [%d] del hilo %s por %s: %s", m.Id, th.Id, user.Login, err))
+				} else {
+					logEvent(fmt.Sprintf("Se ha borrado el mensaje [%d]  del hilo %s por %s", m.Id, th.Id, user.Login))
+				}
+
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(200)
+			json.NewEncoder(w).Encode(m)
+
 		} else {
 			a.jsonerror(w, "Bad msg id", 404)
 		}
@@ -92,9 +111,14 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 		if err == nil && thread != nil && m != nil {
 			m.Parent = thread
 			m.Author = user.Login
-			m.Save(false)
+			err = m.Save(false)
+			if err != nil {
+				logEvent(fmt.Sprintf("Falló añadir el mensaje [%d] al hilo %s por %s: %s", m.Id, thread.Id, user.Login, err))
+				a.jsonerror(w, "Operation failed", 404)
+				return
+			}
 			m.Parent.addMessage(m)
-			logEvent(fmt.Sprintf("%s ha añadido un mensaje al hilo %s", user.Login, thread.Id))
+			logEvent(fmt.Sprintf("%s ha añadido el mensaje [%d] al hilo %s", user.Login, m.Id, thread.Id))
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(m)
 		} else {
