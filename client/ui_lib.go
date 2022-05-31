@@ -88,21 +88,23 @@ func isBoardFiltered() bool {
 }
 
 func resetFilter() {
-	for i := range clientboard.Threads {
+	/*for i := range clientboard.Threads {
 		clientboard.Threads[i].Hide = false
-	}
+	}*/
 	filter = make([]string, 0)
 }
 
+/*
 func applyFilter(filteredThreads []*srv.Thread) {
-	for i := range clientboard.Threads {
-		clientboard.Threads[i].Hide = true
-	}
-	for _, f := range filteredThreads {
-		th := getThread(f.Id)
-		th.Hide = false
-	}
+		for i := range clientboard.Threads {
+			clientboard.Threads[i].Hide = true
+		}
+		for _, f := range filteredThreads {
+			th := getThread(f.Id)
+			th.Hide = false
+		}
 }
+*/
 
 func marksMatchesWord(thread *srv.Thread) {
 	if len(filter) == 0 {

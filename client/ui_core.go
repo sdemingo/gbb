@@ -98,6 +98,9 @@ func UIRoutine(uic chan int) {
 					log.Println(filter)
 					if isBoardFiltered() {
 						resetFilter()
+						// reload all threads again
+						clientboard = FetchBoard()
+						refreshPanels(s, true)
 					} else {
 						quit(s)
 					}
@@ -161,7 +164,11 @@ func UIRoutine(uic chan int) {
 					pattern := messageBuffer.Msg
 					filter = []string{pattern}
 					matches := FindThreads(pattern)
-					applyFilter(matches)
+
+					// reload the boardpanel with the threads found
+					boardPanel.Board.Threads = matches
+					boardPanel.FirstThreadShowed = 0
+
 					activeMode = MODE_BOARD
 					refreshPanels(s, true)
 				}

@@ -474,11 +474,16 @@ func (b *Board) delThread(th *Thread) {
 func (b *Board) filterThreads(filter string) []*Thread {
 	patterns := []string{filter}
 	matched := make([]*Thread, 0)
+	appended := make(map[string]int)
 	for i := range b.Threads {
 		for _, m := range b.Threads[i].Messages {
 			for _, w := range patterns {
 				if strings.Index(m.Text, w) >= 0 {
-					matched = append(matched, b.Threads[i])
+					if _, ok := appended[b.Threads[i].Id]; !ok {
+						// if the thread nos found yet, it is appended to matched
+						matched = append(matched, b.Threads[i])
+						appended[b.Threads[i].Id] = 1
+					}
 				}
 			}
 		}
