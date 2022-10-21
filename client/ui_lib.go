@@ -624,6 +624,8 @@ func InputMessageFromEditor(initialText string) (error, string) {
 	if err != nil {
 		return err, ""
 	}
+	defer os.Remove(filename)
+	
 	_, err = f.WriteString(initialText)
 	if err != nil {
 		f.Close()

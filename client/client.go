@@ -116,7 +116,7 @@ func ClientInit(cmd string, exDir string) {
 
 	clientUser = FetchUser(Username)
 	if clientUser == nil {
-		fmt.Println("Error: El usuario no existe. Debe solicitar un nuevo usuario")
+		fmt.Println("Error: El usuario "+Username+" no existe. Debe solicitar un nuevo usuario")
 		return
 	}
 
