@@ -63,6 +63,9 @@ func UIRoutine(uic chan int) {
 	if err != nil {
 		log.Fatalf("%+v", err)
 	}
+
+	s.DisableMouse()
+	
 	if err := s.Init(); err != nil {
 		log.Fatalf("%+v", err)
 	}
@@ -80,6 +83,10 @@ func UIRoutine(uic chan int) {
 		s.Show()
 		ev := s.PollEvent()
 		switch ev := ev.(type) {
+
+		case *tcell.EventMouse:
+
+			
 		case *tcell.EventResize:
 			s.Sync()
 			refreshPanels(s, true)
