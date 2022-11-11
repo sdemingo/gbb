@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+
+import sqlite3
+import sys
+import hashlib
+import string
+import random
+import os
+import shutil
+from sqlite3 import Error
+
+
+dbpath="data/gbb.db"
+
+
+
+if __name__=='__main__':
+
+    if os.geteuid() != 0:
+        exit("Please run as root")
+
+    
+    gbbhome=os.getenv("GBBHOME")
+    if gbbhome==None or gbbhome == "":
+        exit("GBBHOME is not defined")
+
+    dbpath=gbbhome+"/"+dbpath
+
+
+    if (len(sys.argv)<2):
+        print("         gbbadmin-checkuser <login>")
+        sys.exit(1)
+    
+    conn = None
+    try:
+        conn = sqlite3.connect(dbpath)
+    except Error as e:
+        print(e)
+        sys.exit(1)
+
+    login=sys.argv[1]
+    if (len(login) == 0):
+        print("         gbbadmin-checkuser <login>")
+        sys.exit(1)
+
+    sql = "SELECT login FROM users WHERE login='"+login+"';"
+    cur = conn.cursor()
+    cur.execute(sql)
+    conn.commit()
+
+    if (cur.fetchone()==None):
+        print("No existe un usuario con ese nombre")
+        sys.exit(1)
+
+
+    
