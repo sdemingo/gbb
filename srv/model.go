@@ -98,11 +98,13 @@ func (m *Message) SetDate(datestr string) {
 // cambiar el contenido del mensaje
 func (m *Message) Save(update bool) error {
 	date := m.DateString()
+
+	escapeText:=strings.Replace(m.Text,"'","''",-1)
 	q := ""
 	if update {
-		q = fmt.Sprintf("UPDATE messages SET content='%s' WHERE id='%d';", m.Text, m.Id)
+		q = fmt.Sprintf("UPDATE messages SET content='%s' WHERE id='%d';", escapeText, m.Id)
 	} else {
-		q = fmt.Sprintf("INSERT INTO messages (thread, author,stamp,content) VALUES ('%s','%s','%s','%s');", m.Parent.Id, m.Author, date, m.Text)
+		q = fmt.Sprintf("INSERT INTO messages (thread, author,stamp,content) VALUES ('%s','%s','%s','%s');", m.Parent.Id, m.Author, date, escapeText)
 	}
 
 	db,err:=GetConnection()
