@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/mux"
 )
@@ -26,14 +27,11 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id, err := strconv.Atoi(vars["MsgId"])
 		if err == nil {
-			//if m := board.getMessage(id); (m != nil) && ((m.Author == user.Login) || (user.IsAdmin)) {
 			m := board.getMessage(id)
 			if m == nil {
 				a.jsonerror(w, "Bad msg id", 404)
 				return
 			}
-
-			logEvent(fmt.Sprintf("%s", m.String()))
 
 			if m.Author != user.Login && !user.IsAdmin {
 				a.jsonerror(w, "Bad msg id or bad msg author", 404)
@@ -43,7 +41,7 @@ func (a *api) deleteMessage(w http.ResponseWriter, r *http.Request) {
 			if th := m.Parent; th != nil {
 				err = m.DeleteFromBD()
 				if err != nil {
-					logEvent(fmt.Sprintf("Falló el borrado del mensaje [%d] del hilo %s por %s: %s", m.Id, th.Id, user.Login, err))
+					logEvent(fmt.Sprintf("BD ERROR: Falló el borrado del mensaje [%d] del hilo %s por %s: %s", m.Id, th.Id, user.Login, err))
 				}
 				err = th.delMessage(m)
 				if err != nil {
@@ -77,7 +75,10 @@ func (a *api) updateMessageInThread(w http.ResponseWriter, r *http.Request) {
 				err := json.NewDecoder(r.Body).Decode(auxMsg)
 				if err == nil {
 					storedMsg.Text = auxMsg.Text
-					storedMsg.Save(true)
+					err=storedMsg.Save(true)
+                    if err!=nil{
+						logEvent(fmt.Sprintf("BD ERROR: Falló el actualizado del mensaje [%d]: %s", storedMsg.Id, err))
+					}
 					storedMsg.Text = auxMsg.Text
 					w.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(w).Encode(storedMsg)
@@ -113,7 +114,7 @@ func (a *api) addMessageToThread(w http.ResponseWriter, r *http.Request) {
 			m.Author = user.Login
 			err = m.Save(false)
 			if err != nil {
-				logEvent(fmt.Sprintf("Falló añadir el mensaje [%d] al hilo %s por %s: %s", m.Id, thread.Id, user.Login, err))
+				logEvent(fmt.Sprintf("BD ERROR: Falló añadir el mensaje [%d] al hilo %s por %s: %s", m.Id, thread.Id, user.Login, err))
 				a.jsonerror(w, "Operation failed", 404)
 				return
 			}
@@ -159,9 +160,13 @@ func (a *api) deleteThread(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if thread != nil {
-			thread.Delete()
+			err:=thread.Delete()
 			board.delThread(thread)
-			logEvent(fmt.Sprintf("%s ha borrado el hilo %s", user.Login, thread.Id))
+			if err!=nil{
+				logEvent(fmt.Sprintf("BD ERROR: Fallo el borrado del hilo %s por parte de %s", thread.Id, user.Login))
+			}else{
+				logEvent(fmt.Sprintf("%s ha borrado el hilo %s", user.Login, thread.Id))
+			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(thread)
 		} else {
@@ -189,7 +194,10 @@ func (a *api) operateWithThread(w http.ResponseWriter, r *http.Request) {
 			if command == "fixed" || command == "free" {
 				thread.IsFixed = (command == "fixed")
 			}
-			thread.Update()
+			err := thread.Update()
+			if err!=nil{
+				logEvent(fmt.Sprintf("BD ERROR: Falló actualizar el modo del hilo hilo %s: %s", thread.Id,err))
+			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(thread)
 		} else {
@@ -236,8 +244,12 @@ func (a *api) addThreadToBoard(w http.ResponseWriter, r *http.Request) {
 		th := NewThread(title, nil)
 		th.Author = user.Login
 		board.addThread(th)
-		th.Save()
-		logEvent(fmt.Sprintf("%s ha añadido el hilo %s", user.Login, th.Id))
+		err:=th.Save()
+		if err!=nil{
+			logEvent(fmt.Sprintf("BD ERROR: Fallo añdir hilo %s por parte del usuario %s", th.Id, user.Login))
+		}else{
+			logEvent(fmt.Sprintf("%s ha añadido el hilo %s", user.Login, th.Id))
+		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(th)
 	} else {
@@ -265,12 +277,14 @@ func (a *api) verifyUser(w http.ResponseWriter, r *http.Request) {
 	login := vars["Login"]
 	var u *User
 	if u = board.GetUser(login); u == nil {
+		logEvent(fmt.Sprintf("Se intenta acceder con usuario desconocido: %s", login))
 		a.jsonerror(w, "User not exists in the database", 404)
 		return
 	}
 	pass_s := ""
 	err := json.NewDecoder(r.Body).Decode(&pass_s)
 	if err != nil {
+		logEvent(fmt.Sprintf("Se recibe mensaje con credenciales corrupto"))
 		a.jsonerror(w, "Bad createUser payload", 404)
 		return
 	}
@@ -367,18 +381,24 @@ func (a *api) Router() http.Handler {
 }
 
 var board *Board
-var db *sql.DB
+var mutex sync.Mutex
 
-func GetConnection() *sql.DB {
-	if db != nil {
-		return db
-	}
-	var err error
-	db, err = sql.Open("sqlite3", dbPathFile)
+
+func GetConnection() (*sql.DB,error) {
+	
+	mutex.Lock()
+	db, err := sql.Open("sqlite3", dbPathFile)
 	if err != nil {
-		panic(err)
+		mutex.Unlock()
+		return nil, err
 	}
-	return db
+	return db,nil
+}
+
+func CloseConnection(db *sql.DB){
+
+	mutex.Unlock();
+	db.Close()
 }
 
 const PORT = 8080

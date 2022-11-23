@@ -104,20 +104,26 @@ func (m *Message) Save(update bool) error {
 	} else {
 		q = fmt.Sprintf("INSERT INTO messages (thread, author,stamp,content) VALUES ('%s','%s','%s','%s');", m.Parent.Id, m.Author, date, m.Text)
 	}
-	statement, err := db.Prepare(q)
 
-	if err == nil {
-		res, err := statement.Exec()
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
+	statement, err := db.Prepare(q)
+	if err != nil {
+		return err
+	}
+
+	res, err := statement.Exec()
+	if err != nil {
+		return err
+	}
+	if !update {
+		id, err := res.LastInsertId()
 		if err != nil {
 			return err
 		}
-		if !update {
-			id, err := res.LastInsertId()
-			if err != nil {
-				return err
-			}
-			m.Id = int(id)
-		}
+		m.Id = int(id)
 	}
 	return nil
 }
@@ -125,10 +131,16 @@ func (m *Message) Save(update bool) error {
 // Borra un mensaje de la base de datos
 func (m *Message) DeleteFromBD() error {
 	q := fmt.Sprintf("DELETE FROM messages WHERE id=%d;", m.Id)
+
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
 	statement, err := db.Prepare(q)
-	if err == nil {
-		_, err = statement.Exec()
+	if err != nil {
+		return err
 	}
+	_, err = statement.Exec()
+	
 	return err
 }
 
@@ -171,7 +183,7 @@ func NewThread(title string, first *Message) *Thread {
 }
 
 // Inserta un hilo nuevo en la base de datos.
-func (t *Thread) Save() {
+func (t *Thread) Save() error {
 	closed := 0
 	if t.IsClosed {
 		closed = 1
@@ -181,14 +193,22 @@ func (t *Thread) Save() {
 		fixed = 1
 	}
 	q := fmt.Sprintf("INSERT INTO threads (id,title,IsClosed,IsFixed) VALUES ('%s','%s','%d','%d');\n", t.Id, t.Title, closed, fixed)
+
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
 	statement, err := db.Prepare(q)
-	if err == nil {
-		_, err = statement.Exec()
+	if err != nil {
+		return err
 	}
+	_, err = statement.Exec()
+	return err
+	
 }
 
 // Actualiza un hilo de la base de datos. Solo pueden ser actualizados los campos de fixed o closed.
-func (t *Thread) Update() {
+func (t *Thread) Update() error{
 	closed := 0
 	if t.IsClosed {
 		closed = 1
@@ -199,23 +219,36 @@ func (t *Thread) Update() {
 	}
 
 	q := fmt.Sprintf("UPDATE threads SET IsClosed='%d', IsFixed='%d' WHERE id='%s';\n", closed, fixed, t.Id)
-	statement, err := db.Prepare(q)
 
-	if err == nil {
-		_, err = statement.Exec()
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
+	statement, err := db.Prepare(q)
+	if err != nil {
+		return err
 	}
+	_, err = statement.Exec()
+	return err
 }
 
 // Borra un hilo de la base de datos
-func (t *Thread) Delete() {
+func (t *Thread) Delete() error {
 	for _, m := range t.Messages {
 		m.DeleteFromBD()
 	}
 	q := fmt.Sprintf("DELETE FROM threads WHERE id='%s';", t.Id)
+
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
 	statement, err := db.Prepare(q)
-	if err == nil {
-		_, err = statement.Exec()
+	if err != nil {
+		return err
 	}
+	_, err = statement.Exec()
+	return err
 }
 
 // Añade un mensaje al hilo
@@ -322,6 +355,11 @@ func CreateBoard() *Board {
 // Carga de la base de datos solo la tabla de usuarios
 func (b *Board) LoadUsers() error {
 	q := `SELECT login, password, isAdmin, isBanned FROM users`
+
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
 	rows, err := db.Query(q)
 	if err != nil {
 		return err
@@ -351,7 +389,12 @@ func (b *Board) LoadUsers() error {
 
 // Carga toda la base de datos
 func (b *Board) Load() error {
-	db := GetConnection()
+	db,err := GetConnection()
+	//defer CloseConnection(db)
+	if err!=nil{
+		CloseConnection(db)
+		return err	
+	}
 
 	// Recuperamos los threads
 	q := `SELECT
@@ -360,6 +403,7 @@ func (b *Board) Load() error {
 
 	rows, err := db.Query(q)
 	if err != nil {
+		CloseConnection(db)
 		return err
 	}
 	defer rows.Close()
@@ -386,6 +430,7 @@ func (b *Board) Load() error {
 
 	rows, err = db.Query(q)
 	if err != nil {
+		CloseConnection(db)
 		return err
 	}
 	defer rows.Close()
@@ -407,6 +452,8 @@ func (b *Board) Load() error {
 			th.addMessage(m)
 		}
 	}
+
+	CloseConnection(db)
 
 	err = b.LoadUsers()
 
@@ -527,7 +574,7 @@ func NewUser(login string, pass []byte) *User {
 }
 
 // Save or update an user in the database
-func (u *User) Save(update bool) {
+func (u *User) Save(update bool) error{
 	q := ""
 	isadmin := 0
 	if u.IsAdmin {
@@ -543,8 +590,15 @@ func (u *User) Save(update bool) {
 	} else {
 		q = fmt.Sprintf("INSERT INTO users (login,password,isAdmin,isBanned) VALUES ('%s','%s','0','0');", u.Login, password)
 	}
+
+	db,err:=GetConnection()
+	defer CloseConnection(db)
+	if err!=nil{return err}
+
 	statement, err := db.Prepare(q)
-	if err == nil {
-		_, err = statement.Exec()
+	if err != nil {
+		return err
 	}
+	_, err = statement.Exec()
+	return err
 }

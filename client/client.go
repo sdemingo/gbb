@@ -12,7 +12,7 @@ import (
 	"golang.org/x/term"
 )
 
-var APP_TITLE = "GBB v1.1"
+var APP_TITLE = "GBB v1.2"
 var WELCOME = `
 
    ,o888888o.    8 888888888o   8 888888888o   
